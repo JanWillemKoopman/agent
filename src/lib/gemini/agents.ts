@@ -121,42 +121,42 @@ export const CHEF_PERSONAS: ChefPersona[] = [
   {
     id: 'Chef Snel',
     systemInstruction:
-      'Je bent Chef Snel. Bedenk 4 gezonde 4-persoons dinerrecepten die binnen 20 minuten klaar zijn. Hergebruik zo veel mogelijk de aangeboden aanbiedingen.',
+      'Je bent Chef Snel. Bedenk 6 gezonde 4-persoons dinerrecepten die binnen 20 minuten klaar zijn. Hergebruik zo veel mogelijk de aangeboden aanbiedingen.',
   },
   {
     id: 'Chef Vega',
     systemInstruction:
-      'Je bent Chef Vega. Bedenk 4 creatieve, gezonde 4-persoons vegetarische dinerrecepten. Hergebruik zo veel mogelijk de aangeboden aanbiedingen.',
+      'Je bent Chef Vega. Bedenk 6 creatieve, gezonde 4-persoons vegetarische dinerrecepten. Hergebruik zo veel mogelijk de aangeboden aanbiedingen.',
   },
   {
     id: 'Chef Wereldkeuken',
     systemInstruction:
-      'Je bent Chef Wereldkeuken. Bedenk 4 smaakvolle, gezonde 4-persoons dinerrecepten geïnspireerd op de wereldkeuken. Hergebruik zo veel mogelijk de aangeboden aanbiedingen.',
+      'Je bent Chef Wereldkeuken. Bedenk 6 smaakvolle, gezonde 4-persoons dinerrecepten geïnspireerd op de wereldkeuken. Hergebruik zo veel mogelijk de aangeboden aanbiedingen.',
   },
   {
     id: 'Chef Gezond',
     systemInstruction:
-      'Je bent Chef Gezond. Bedenk 4 macro-gebalanceerde 4-persoons dinerrecepten met een goede verhouding eiwitten, koolhydraten en vetten. Hergebruik zo veel mogelijk de aangeboden aanbiedingen.',
+      'Je bent Chef Gezond. Bedenk 6 macro-gebalanceerde 4-persoons dinerrecepten met een goede verhouding eiwitten, koolhydraten en vetten. Hergebruik zo veel mogelijk de aangeboden aanbiedingen.',
   },
   {
     id: 'Chef Budget',
     systemInstruction:
-      'Je bent Chef Budget. Bedenk 4 uiterst goedkope 4-persoons dinerrecepten die maximaal gebruik maken van de kortingaanbiedingen en zo min mogelijk dure standaardingrediënten bevatten.',
+      'Je bent Chef Budget. Bedenk 6 uiterst goedkope 4-persoons dinerrecepten die maximaal gebruik maken van de kortingaanbiedingen en zo min mogelijk dure standaardingrediënten bevatten.',
   },
   {
     id: 'Chef Familie',
     systemInstruction:
-      'Je bent Chef Familie. Bedenk 4 kindvriendelijke, smakelijke 4-persoons dinerrecepten die ook kinderen van 6–12 jaar lekker vinden. Hergebruik zo veel mogelijk de aangeboden aanbiedingen.',
+      'Je bent Chef Familie. Bedenk 6 kindvriendelijke, smakelijke 4-persoons dinerrecepten die ook kinderen van 6–12 jaar lekker vinden. Hergebruik zo veel mogelijk de aangeboden aanbiedingen.',
   },
   {
     id: 'Chef Gourmet',
     systemInstruction:
-      'Je bent Chef Gourmet. Bedenk 4 verfijnde maar haalbare 4-persoons dinerrecepten op restaurantniveau die thuiskoks kunnen maken. Hergebruik zo veel mogelijk de aangeboden aanbiedingen.',
+      'Je bent Chef Gourmet. Bedenk 6 verfijnde maar haalbare 4-persoons dinerrecepten op restaurantniveau die thuiskoks kunnen maken. Hergebruik zo veel mogelijk de aangeboden aanbiedingen.',
   },
   {
     id: 'Chef Slow',
     systemInstruction:
-      'Je bent Chef Slow. Bedenk 4 comfortabele 4-persoons dinerrecepten voor de oven of slowcooker waarbij het gerecht grotendeels zichzelf bereidt. Hergebruik zo veel mogelijk de aangeboden aanbiedingen.',
+      'Je bent Chef Slow. Bedenk 6 comfortabele 4-persoons dinerrecepten voor de oven of slowcooker waarbij het gerecht grotendeels zichzelf bereidt. Hergebruik zo veel mogelijk de aangeboden aanbiedingen.',
   },
 ];
 
@@ -215,10 +215,12 @@ export async function criticFilter(
     concepts.slice(third * 2),
   ].filter((g) => g.length > 0);
 
-  const keepPerGroup = Math.ceil(8 / groups.length);
+  const keepPerGroup = Math.ceil(16 / groups.length);
 
   const criticPrompt = (group: RecipeConcept[]) =>
     `Beoordeel deze lijst met receptconcepten als een professionele chef en diëtist. Verwijder recepten die culinair niet kloppen, ongezond zijn, of te complex zijn voor een thuiskok. Behoud de beste ${keepPerGroup} recepten en geef deze terug.
+
+Streef naar diversiteit in de geselecteerde recepten: zorg dat de behouden recepten samen aanbiedingen van zo veel mogelijk verschillende supermarkten benutten (te herkennen via het "supermarket"-veld in de base_deal_ingredients).
 
 Behoud per recept ALLE velden ongewijzigd, inclusief de volledige "instructions" (bereidingsstappen). Verbeter onduidelijke of incomplete stappen waar nodig, maar laat ze nooit weg.
 
@@ -242,13 +244,13 @@ ${JSON.stringify(group)}`;
   const merged = results.flatMap((r) =>
     r.status === 'fulfilled' ? (r.value.recipes ?? []) : []
   );
-  return merged.slice(0, 8);
+  return merged.slice(0, 16);
 }
 
 // ---------------------------------------------------------------------------
 // Stap 4 — The Shoppers (Gemini + google_search). Max 10 calls, 1 recept per chunk.
 // ---------------------------------------------------------------------------
-const MAX_SHOPPER_CALLS = 10;
+const MAX_SHOPPER_CALLS = 16;
 
 export async function shopPrices(
   recipesChunk: RecipeConcept[],

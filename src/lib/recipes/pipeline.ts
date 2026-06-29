@@ -64,10 +64,10 @@ export async function runKitchenBrigade(
   let bestConcepts: RecipeConcept[];
   try {
     bestConcepts = await criticFilter(concepts);
-    if (bestConcepts.length === 0) bestConcepts = concepts.slice(0, 8);
+    if (bestConcepts.length === 0) bestConcepts = concepts.slice(0, 16);
   } catch (err) {
-    console.error('Critic faalde, val terug op eerste 8 concepten:', err);
-    bestConcepts = concepts.slice(0, 8);
+    console.error('Critic faalde, val terug op eerste 16 concepten:', err);
+    bestConcepts = concepts.slice(0, 16);
   }
 
   // --- Stap 4: The Shoppers — chunk 1 recept per call, max MAX_SHOPPER_CALLS ------
