@@ -3,14 +3,14 @@ import { Providers } from './providers';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Slimme Recepten — Goedkoop & Gezond',
+  title: 'FamApp — Goedkoop & Gezond koken',
   description:
-    'Genereer gezonde, goedkope recepten op basis van actuele supermarktaanbiedingen.',
+    'Genereer gezonde, goedkope recepten op basis van de actuele supermarktaanbiedingen.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Recepten',
+    title: 'FamApp',
   },
   formatDetection: {
     telephone: false,
@@ -23,7 +23,7 @@ export const viewport: Viewport = {
   maximumScale: 5,
   userScalable: true,
   viewportFit: 'cover',
-  themeColor: '#00a0e2',
+  themeColor: '#ffffff',
 };
 
 export default function RootLayout({
@@ -37,11 +37,26 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="Recepten" />
+        <meta name="apple-mobile-web-app-title" content="FamApp" />
+        {/* Inter — clean humanist sans, dicht bij de AH-huisstijl */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        />
         {/* Phosphor Icons (Regular / outline-stijl) via CDN */}
         <link
           rel="stylesheet"
           href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css"
+        />
+        <link
+          rel="stylesheet"
+          href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css"
         />
       </head>
       <body>

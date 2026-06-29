@@ -57,6 +57,7 @@ function priceRecipe(
         name,
         price: deal.deal_price,
         is_deal: true,
+        original_price: deal.original_price ?? null,
         supermarket: deal.supermarket,
       });
     } else {
@@ -83,6 +84,8 @@ function priceRecipe(
     recipe_name: concept.recipe_name,
     description: concept.description,
     ingredients,
+    instructions: concept.instructions ?? [],
+    servings: SERVINGS,
     supermarkets: Array.from(supermarkets),
     bonus_deal_count: bonusDealCount,
     total_price: round2(total),

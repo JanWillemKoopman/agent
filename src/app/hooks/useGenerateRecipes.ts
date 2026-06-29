@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import { ensureAnonymousSession } from '@/lib/supabase/client';
+import { getAccessToken } from '@/lib/supabase/client';
 import type { FinalRecipe } from '@/lib/types';
 
 interface StatusLine {
@@ -26,7 +26,7 @@ export function useGenerateRecipes() {
     abortRef.current = controller;
 
     try {
-      const { accessToken } = await ensureAnonymousSession();
+      const accessToken = await getAccessToken();
 
       const res = await fetch('/api/generate-recipes', {
         method: 'POST',

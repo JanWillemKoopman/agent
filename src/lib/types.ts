@@ -25,6 +25,8 @@ export interface RecipeConcept {
   description: string;
   base_deal_ingredients: string[];
   required_standard_ingredients: string[];
+  // Stap-voor-stap bereiding (uitgeschreven recept).
+  instructions: string[];
 }
 
 // Stap 4 — Shoppers: prijs + afbeelding van een standaardingrediënt.
@@ -39,6 +41,8 @@ export interface PricedIngredient {
   name: string;
   price: number;
   is_deal: boolean;
+  // Reguliere prijs vóór de aanbieding (alleen bij deals, indien bekend).
+  original_price?: number | null;
   supermarket?: string;
   image_url?: string | null;
 }
@@ -47,6 +51,8 @@ export interface FinalRecipe {
   recipe_name: string;
   description: string;
   ingredients: PricedIngredient[];
+  instructions: string[];
+  servings: number;
   supermarkets: string[];
   bonus_deal_count: number;
   total_price: number;

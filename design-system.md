@@ -39,11 +39,23 @@ Dit document beschrijft de UI-richtlijnen gebaseerd op de mobiele interface van 
 ## 6. Implementatie-tokens (code)
 Deze tokens zijn gecodeerd in `tailwind.config.js` (`theme.extend`) en als CSS-variabelen in `src/app/globals.css`.
 
-*   **Kleuren (Tailwind):** `ahBlue #00a0e2`, `bonusOrange #f28e00`, `dark #1b1b1b`, `appBg #f4f5f7`, `surface #ffffff`.
-*   **Font:** `system-ui, sans-serif` (strak, schreefloos).
-*   **Iconen:** [Phosphor Icons](https://phosphor.icons) via CDN, **Regular/outline-stijl**.
-    *   24px voor hoofdnavigatie (bijv. `ph-gear` in de header).
+*   **Kleuren (Tailwind):**
+    *   `ahBlue #00a0e2` (primaire actie), `ahBlueDark #0089c3` (hover), `ahBlueSoft #e6f6fd` (zachte vlakken/badges).
+    *   `bonusOrange #f28e00` (aanbiedingen).
+    *   `navy #21303f` (koppen + donkere accenten), `ink #1a1a1a` (tekst), `muted #6b7785` (secundaire tekst), `line #e6e8eb` (randen).
+    *   `appBg #f5f6f7` (pagina-achtergrond), `surface #ffffff` (kaarten/secties).
+*   **Font:** `Inter` (via Google Fonts), met `system-ui` als fallback — strak, humanistisch, dicht bij de AH-huisstijl.
+*   **Iconen:** [Phosphor Icons](https://phosphor.icons) via CDN, **Regular/outline** + **Fill** voor actieve staten.
+    *   24px voor navigatie (bottom-nav, detail-topbalk).
     *   20px/16px voor in-line elementen (badges, knoppen, statusregels).
-*   **Cards:** `box-shadow: 0 2px 8px rgba(0,0,0,0.05)` (Tailwind: `shadow-card`), afgeronde hoeken `8px` (`rounded-card`).
-*   **Knoppen:** pill-vormig, `border-radius: 9999px` (`rounded-pill`). Primaire actie in `ahBlue`.
-*   **Bonus-badge:** rechthoekige `bonusOrange` badge met witte, vetgedrukte hoofdletters (bijv. "3x BONUS DEALS").
+*   **Cards:** zachte schaduw `shadow-card`, afgeronde hoeken `12px` (`rounded-card`).
+*   **Knoppen:** pill-vormig (`rounded-pill`). Primaire actie in `ahBlue` met `ahBlueDark` hover.
+*   **Bonus-badge:** afgeronde `bonusOrange` badge met witte, vetgedrukte hoofdletters + `ph-tag` icoon (bijv. "3x BONUS").
+
+## 7. App-structuur (FamApp)
+*   **Header:** witte balk met FamApp-logo (blauw vierkant + `ph-cooking-pot`) en woordmerk in `navy`.
+*   **Bottom-navigatie:** vaste balk onderaan met icoon + label per pagina (Recepten, Instellingen, Account). Uitbreidbaar via de `ITEMS`-lijst in `BottomNav.tsx`.
+*   **Recepten (lege staat):** intro-tekst + genereer-knop horizontaal én verticaal gecentreerd.
+*   **Receptkaarten:** géén afbeeldingen — strakke tekstkaart met bonus-badge, titel, prijs p.p. en winkel. Klikbaar naar detail.
+*   **Recept-detail:** full-screen overlay met prijs-samenvatting, ingrediënten-tabel (prijs, aanbieding, winkel) en uitgeschreven bereiding ("Aan de slag", genummerde stappen).
+*   **Login:** e-mail + wachtwoord (Supabase Auth) met een gecentreerd login/registratie-scherm.

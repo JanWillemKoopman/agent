@@ -17,18 +17,24 @@ const recipeConceptSchema = {
       type: Type.ARRAY,
       items: { type: Type.STRING },
     },
+    instructions: {
+      type: Type.ARRAY,
+      items: { type: Type.STRING },
+    },
   },
   required: [
     'recipe_name',
     'description',
     'base_deal_ingredients',
     'required_standard_ingredients',
+    'instructions',
   ],
   propertyOrdering: [
     'recipe_name',
     'description',
     'base_deal_ingredients',
     'required_standard_ingredients',
+    'instructions',
   ],
 };
 

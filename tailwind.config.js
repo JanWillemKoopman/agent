@@ -8,22 +8,35 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // AH-Inspired Design System
+        // AH-geïnspireerd design-systeem
         ahBlue: '#00a0e2',
+        ahBlueDark: '#0089c3',
+        ahBlueSoft: '#e6f6fd',
         bonusOrange: '#f28e00',
-        dark: '#1b1b1b',
-        appBg: '#f4f5f7',
+        navy: '#21303f', // donkere balk + koppen (allerhande-stijl)
+        ink: '#1a1a1a', // primaire tekst
+        muted: '#6b7785', // secundaire tekst
+        line: '#e6e8eb', // randen
+        appBg: '#f5f6f7', // pagina-achtergrond
         surface: '#ffffff',
       },
       borderRadius: {
-        card: '8px',
+        card: '12px',
         pill: '9999px',
       },
       boxShadow: {
-        card: '0 2px 8px rgba(0,0,0,0.05)',
+        card: '0 1px 3px rgba(16,24,40,0.06), 0 1px 2px rgba(16,24,40,0.04)',
+        nav: '0 -1px 8px rgba(16,24,40,0.06)',
       },
       fontFamily: {
-        sans: ['system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+        sans: [
+          'Inter',
+          'system-ui',
+          '-apple-system',
+          'Segoe UI',
+          'Roboto',
+          'sans-serif',
+        ],
       },
     },
   },

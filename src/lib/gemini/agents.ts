@@ -61,9 +61,10 @@ ${JSON.stringify(deals)}
 
 Bedenk de recepten volgens jouw specialisatie. Geef voor elk recept terug:
 - "recipe_name"
-- "description"
+- "description": één korte, smakelijke zin
 - "base_deal_ingredients": welke aanbiedingen uit de lijst je gebruikt
-- "required_standard_ingredients": welke reguliere (niet-aanbieding) producten nog nodig zijn`;
+- "required_standard_ingredients": welke reguliere (niet-aanbieding) producten nog nodig zijn
+- "instructions": de volledige bereiding als array van duidelijke stappen (5 tot 8 korte stappen) voor 4 personen`;
 
   // Pro: culinaire kwaliteit bij het bedenken van recepten.
   const result = await generateStructured<{ recipes: RecipeConcept[] }>({
@@ -82,6 +83,8 @@ export async function criticFilter(
   concepts: RecipeConcept[]
 ): Promise<RecipeConcept[]> {
   const prompt = `Beoordeel deze lijst met receptconcepten als een professionele chef en diëtist. Verwijder recepten die culinair niet kloppen, ongezond zijn, of te complex zijn voor een thuiskok. Behoud de beste 8 recepten en geef deze terug.
+
+Behoud per recept ALLE velden ongewijzigd, inclusief de volledige "instructions" (bereidingsstappen). Verbeter onduidelijke of incomplete stappen waar nodig, maar laat ze nooit weg.
 
 Receptconcepten (JSON):
 ${JSON.stringify(concepts)}`;

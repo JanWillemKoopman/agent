@@ -1,70 +1,84 @@
 'use client';
 
-import { useState } from 'react';
 import type { FinalRecipe } from '@/lib/types';
-
-const PLACEHOLDER =
-  "data:image/svg+xml;utf8," +
-  encodeURIComponent(
-    `<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'>
-      <rect width='100%' height='100%' fill='#f4f5f7'/>
-      <text x='50%' y='50%' font-family='system-ui' font-size='20' fill='#9aa0a6'
-        text-anchor='middle' dominant-baseline='middle'>Geen afbeelding</text>
-    </svg>`
-  );
+import { formatEuro } from '@/lib/format';
 
 interface RecipeCardProps {
   recipe: FinalRecipe;
   saved: boolean;
   onToggleSave: (recipe: FinalRecipe) => void;
+  onOpen: (recipe: FinalRecipe) => void;
 }
 
-export function RecipeCard({ recipe, saved, onToggleSave }: RecipeCardProps) {
-  const [imgSrc, setImgSrc] = useState(recipe.image_url || PLACEHOLDER);
-
+export function RecipeCard({
+  recipe,
+  saved,
+  onToggleSave,
+  onOpen,
+}: RecipeCardProps) {
   return (
-    <article className="overflow-hidden rounded-card bg-surface shadow-card">
-      <div className="relative aspect-[4/3] w-full bg-appBg">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={imgSrc}
-          alt={recipe.recipe_name}
-          className="h-full w-full object-cover"
-          onError={() => setImgSrc(PLACEHOLDER)}
-        />
+    <article
+      role="button"
+      tabIndex={0}
+      onClick={() => onOpen(recipe)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpen(recipe);
+        }
+      }}
+      className="flex cursor-pointer flex-col gap-2 rounded-card bg-surface p-4 text-left shadow-card transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-ahBlue"
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
+          {recipe.bonus_deal_count > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-md bg-bonusOrange px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white">
+              <i className="ph-fill ph-tag text-xs" aria-hidden="true" />
+              {recipe.bonus_deal_count}x bonus
+            </span>
+          )}
+          <span className="inline-flex items-center gap-1 rounded-md bg-appBg px-2 py-0.5 text-[11px] font-medium text-muted">
+            <i className="ph ph-users-three text-xs" aria-hidden="true" />
+            {recipe.servings || 4} pers.
+          </span>
+        </div>
+
         <button
           type="button"
           aria-label={saved ? 'Verwijder uit favorieten' : 'Bewaar recept'}
-          onClick={() => onToggleSave(recipe)}
-          className="absolute right-2 top-2 flex h-10 w-10 items-center justify-center rounded-pill bg-surface/90 shadow-card transition-transform hover:scale-105"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleSave(recipe);
+          }}
+          className="-mr-1 -mt-1 flex h-9 w-9 items-center justify-center rounded-full text-ink transition-colors hover:bg-appBg"
         >
           <i
-            className={`${saved ? 'ph-fill ph-heart text-bonusOrange' : 'ph ph-heart text-dark'} text-xl`}
+            className={`${
+              saved ? 'ph-fill ph-heart text-ahBlue' : 'ph ph-heart text-muted'
+            } text-xl`}
             aria-hidden="true"
           />
         </button>
       </div>
 
-      <div className="space-y-2 p-4">
-        {recipe.bonus_deal_count > 0 && (
-          <span className="inline-block rounded bg-bonusOrange px-2 py-1 text-xs font-bold uppercase text-white">
-            {recipe.bonus_deal_count}x BONUS DEALS
+      <h3 className="text-base font-bold leading-snug text-navy">
+        {recipe.recipe_name}
+      </h3>
+      <p className="line-clamp-2 text-sm text-muted">{recipe.description}</p>
+
+      <div className="mt-1 flex items-end justify-between">
+        <div>
+          <span className="text-xl font-extrabold text-ink">
+            {formatEuro(recipe.price_per_person)}
+          </span>
+          <span className="ml-1 text-xs text-muted">p.p.</span>
+        </div>
+        {recipe.supermarkets.length > 0 && (
+          <span className="inline-flex items-center gap-1 text-xs text-muted">
+            <i className="ph ph-storefront text-sm" aria-hidden="true" />
+            {recipe.supermarkets.join(', ')}
           </span>
         )}
-
-        <h3 className="text-base font-bold text-dark">{recipe.recipe_name}</h3>
-        <p className="line-clamp-2 text-sm text-gray-500">{recipe.description}</p>
-
-        <div className="flex items-center justify-between pt-1">
-          <span className="text-lg font-bold text-dark">
-            € {recipe.price_per_person.toFixed(2).replace('.', ',')} p.p.
-          </span>
-          {recipe.supermarkets.length > 0 && (
-            <span className="text-xs text-gray-500">
-              {recipe.supermarkets.join(', ')}
-            </span>
-          )}
-        </div>
       </div>
     </article>
   );

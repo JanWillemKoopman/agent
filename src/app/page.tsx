@@ -2,38 +2,67 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Header } from './components/Header';
-import { GenerateButton } from './components/GenerateButton';
-import { StatusStream } from './components/StatusStream';
-import { RecipeGrid } from './components/RecipeGrid';
-import { SettingsModal } from './components/SettingsModal';
+import { BottomNav, type TabKey } from './components/BottomNav';
+import { RecipeTab } from './components/RecipeTab';
+import { SettingsPage } from './components/SettingsPage';
+import { AccountPage } from './components/AccountPage';
+import { RecipeDetail } from './components/RecipeDetail';
+import { AuthScreen } from './components/AuthScreen';
 import { UpdateBanner } from './components/UpdateBanner';
 import { useGenerateRecipes } from './hooks/useGenerateRecipes';
 import { useServiceWorkerUpdate } from './hooks/useServiceWorkerUpdate';
+import { useAuth } from './auth-context';
 import {
   fetchSavedRecipes,
   saveRecipe,
   deleteRecipe,
   type SavedRecipe,
 } from '@/lib/api';
-import { ensureAnonymousSession } from '@/lib/supabase/client';
 import type { FinalRecipe } from '@/lib/types';
 
 export default function Home() {
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const { session, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-appBg">
+        <i
+          className="ph ph-circle-notch animate-spin text-3xl text-ahBlue"
+          aria-hidden="true"
+        />
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <AuthScreen />;
+  }
+
+  return <AppShell />;
+}
+
+function AppShell() {
+  const [tab, setTab] = useState<TabKey>('recepten');
   const [saved, setSaved] = useState<SavedRecipe[]>([]);
-  const { statusLines, recipes, isGenerating, error, generate } = useGenerateRecipes();
+  const [detail, setDetail] = useState<FinalRecipe | null>(null);
+
+  const { statusLines, recipes, isGenerating, error, generate } =
+    useGenerateRecipes();
   const { updateAvailable, refresh } = useServiceWorkerUpdate();
 
-  // Zorg voor een anonieme sessie en laad bewaarde recepten bij mount.
+  // Laad bewaarde recepten zodra de gebruiker is ingelogd.
   useEffect(() => {
-    ensureAnonymousSession()
-      .then(() => fetchSavedRecipes())
+    fetchSavedRecipes()
       .then(setSaved)
-      .catch((e) => console.error('Init mislukt:', e));
+      .catch((e) => console.error('Bewaarde recepten laden mislukt:', e));
   }, []);
 
   const savedTitles = useMemo(
     () => new Set(saved.map((s) => s.title)),
+    [saved]
+  );
+  const savedRecipeObjects = useMemo(
+    () => saved.map((s) => s.recipe_json),
     [saved]
   );
 
@@ -52,51 +81,39 @@ export default function Home() {
     }
   };
 
-  const savedRecipeObjects = useMemo(
-    () => saved.map((s) => s.recipe_json),
-    [saved]
-  );
-
   return (
     <div className="min-h-screen bg-appBg">
-      <Header onOpenSettings={() => setSettingsOpen(true)} />
+      <Header />
 
-      <main className="mx-auto max-w-2xl space-y-5 p-4 pb-24">
-        <GenerateButton onClick={generate} isGenerating={isGenerating} />
-
-        <StatusStream lines={statusLines} isGenerating={isGenerating} />
-
-        {error && (
-          <div className="rounded-card border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-            {error}
-          </div>
-        )}
-
-        <RecipeGrid
-          recipes={recipes}
-          savedTitles={savedTitles}
-          onToggleSave={handleToggleSave}
-          title={recipes.length > 0 ? 'Voorgestelde recepten' : undefined}
-        />
-
-        {recipes.length === 0 && savedRecipeObjects.length > 0 && (
-          <RecipeGrid
-            recipes={savedRecipeObjects}
+      <main className="mx-auto max-w-2xl p-4 pb-28">
+        {tab === 'recepten' && (
+          <RecipeTab
+            isGenerating={isGenerating}
+            statusLines={statusLines}
+            recipes={recipes}
+            error={error}
+            onGenerate={generate}
+            savedRecipes={savedRecipeObjects}
             savedTitles={savedTitles}
             onToggleSave={handleToggleSave}
-            title="Bewaarde recepten"
+            onOpen={setDetail}
           />
         )}
-
-        {recipes.length === 0 && !isGenerating && savedRecipeObjects.length === 0 && (
-          <p className="pt-8 text-center text-sm text-gray-500">
-            Druk op de knop om goedkope recepten te genereren op basis van de
-            aanbiedingen van deze week.
-          </p>
-        )}
+        {tab === 'instellingen' && <SettingsPage />}
+        {tab === 'account' && <AccountPage />}
       </main>
 
-      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <BottomNav active={tab} onChange={setTab} />
+
+      {detail && (
+        <RecipeDetail
+          recipe={detail}
+          saved={savedTitles.has(detail.recipe_name)}
+          onToggleSave={handleToggleSave}
+          onClose={() => setDetail(null)}
+        />
+      )}
+
       <UpdateBanner visible={updateAvailable} onRefresh={refresh} />
     </div>
   );

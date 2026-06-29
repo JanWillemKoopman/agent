@@ -5,7 +5,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 let browserClient: SupabaseClient | null = null;
 
-/** Singleton browser-client (anon key). */
+/** Singleton browser-client (anon key). Persisteert de sessie in localStorage. */
 export function getSupabaseBrowserClient(): SupabaseClient {
   if (browserClient) return browserClient;
 
@@ -23,28 +23,18 @@ export function getSupabaseBrowserClient(): SupabaseClient {
 }
 
 /**
- * Zorgt dat er een (anonieme) sessie is en geeft het access-token terug.
- * Wordt gebruikt om API-routes RLS-veilig aan te roepen.
+ * Geeft het access-token van de huidige (ingelogde) sessie terug.
+ * Gooit een fout als de gebruiker niet is ingelogd — API-routes vereisen dit
+ * token zodat Row Level Security blijft gelden.
  */
-export async function ensureAnonymousSession(): Promise<{
-  userId: string;
-  accessToken: string;
-}> {
+export async function getAccessToken(): Promise<string> {
   const supabase = getSupabaseBrowserClient();
-
-  let {
+  const {
     data: { session },
   } = await supabase.auth.getSession();
 
   if (!session) {
-    const { data, error } = await supabase.auth.signInAnonymously();
-    if (error) throw error;
-    session = data.session;
+    throw new Error('Niet ingelogd.');
   }
-
-  if (!session) {
-    throw new Error('Kon geen anonieme Supabase-sessie aanmaken.');
-  }
-
-  return { userId: session.user.id, accessToken: session.access_token };
+  return session.access_token;
 }

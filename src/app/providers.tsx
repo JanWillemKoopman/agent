@@ -1,21 +1,18 @@
 'use client';
 
 import { useEffect } from 'react';
+import { AuthProvider } from './auth-context';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js', {
-        scope: '/',
-      }).catch((error) => {
-        console.error('Service Worker registratie mislukt:', error);
-      });
-    }
-
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
+      navigator.serviceWorker
+        .register('/sw.js', { scope: '/' })
+        .catch((error) => {
+          console.error('Service Worker registratie mislukt:', error);
+        });
     }
   }, []);
 
-  return <>{children}</>;
+  return <AuthProvider>{children}</AuthProvider>;
 }

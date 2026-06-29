@@ -28,7 +28,7 @@ export async function runKitchenBrigade(
   emit: Emit
 ): Promise<FinalRecipe[]> {
   // --- Stap 1: The Foragers -------------------------------------------------
-  emit(1, '🔎 Aanbiedingen zoeken...');
+  emit(1, 'Aanbiedingen zoeken');
   const forageResults = await Promise.allSettled(stores.map((s) => forageDeals(s)));
   const deals: Deal[] = forageResults.flatMap((r) => {
     if (r.status === 'fulfilled') return r.value;
@@ -41,7 +41,7 @@ export async function runKitchenBrigade(
   }
 
   // --- Stap 2: The Chefs ----------------------------------------------------
-  emit(2, '👨‍🍳 Recepten bedenken...');
+  emit(2, 'Recepten bedenken');
   const chefResults = await Promise.allSettled(
     CHEF_PERSONAS.map((p) => chefRecipes(p, deals))
   );
@@ -56,7 +56,7 @@ export async function runKitchenBrigade(
   }
 
   // --- Stap 3: The Critic ---------------------------------------------------
-  emit(3, '🍷 Smaak en kwaliteit controleren...');
+  emit(3, 'Smaak en kwaliteit controleren');
   let bestConcepts: RecipeConcept[];
   try {
     bestConcepts = await criticFilter(concepts);
@@ -67,7 +67,7 @@ export async function runKitchenBrigade(
   }
 
   // --- Stap 4: The Shoppers -------------------------------------------------
-  emit(4, '🛒 Ontbrekende prijzen ophalen...');
+  emit(4, 'Ontbrekende prijzen ophalen');
   const shopResults = await Promise.allSettled(
     chunk(bestConcepts, 2).map((c) => shopPrices(c, stores))
   );
@@ -81,6 +81,6 @@ export async function runKitchenBrigade(
   }
 
   // --- Stap 5: The Calculator (deterministisch) -----------------------------
-  emit(5, '🧮 Budget controleren...');
+  emit(5, 'Budget controleren');
   return calculateRecipes(bestConcepts, deals, prices, minPricePp, maxPricePp);
 }

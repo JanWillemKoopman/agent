@@ -1,10 +1,10 @@
 'use client';
 
-import { ensureAnonymousSession } from './supabase/client';
+import { getAccessToken } from './supabase/client';
 import type { UserSettings, FinalRecipe } from './types';
 
 async function authHeaders(): Promise<HeadersInit> {
-  const { accessToken } = await ensureAnonymousSession();
+  const accessToken = await getAccessToken();
   return { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' };
 }
 

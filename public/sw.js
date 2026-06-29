@@ -1,4 +1,4 @@
-const CACHE_NAME = 'recepten-v2';
+const CACHE_NAME = 'famapp-v3';
 const urlsToCache = [
   '/',
   '/manifest.json',
