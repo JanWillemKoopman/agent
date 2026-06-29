@@ -42,6 +42,16 @@ export async function POST(req: Request) {
         controller.enqueue(sseEvent('status', { step, message }));
       };
 
+      // Keep-alive: stuur elke 12s een SSE-comment zodat mobiele browsers
+      // (Safari/iOS) de verbinding niet verbreken bij een lang-lopende stap.
+      let pingInterval: ReturnType<typeof setInterval> | null = setInterval(() => {
+        try {
+          controller.enqueue(sseComment());
+        } catch {
+          if (pingInterval) clearInterval(pingInterval);
+        }
+      }, 12_000);
+
       try {
         const recipes = await runKitchenBrigade(stores, minPricePp, maxPricePp, emit);
         controller.enqueue(sseEvent('result', { recipes }));
@@ -54,6 +64,7 @@ export async function POST(req: Request) {
           })
         );
       } finally {
+        if (pingInterval) clearInterval(pingInterval);
         controller.enqueue(sseEvent('done', {}));
         controller.close();
       }

@@ -179,16 +179,21 @@ function IngredientRow({ ing }: { ing: PricedIngredient }) {
               ) : null}
             </span>
           )}
-          {ing.supermarket && (
-            <span className="inline-flex items-center gap-1">
+          {ing.is_pantry ? (
+            <span className="inline-flex items-center gap-1 font-medium text-green-600">
+              <i className="ph ph-house text-[10px]" aria-hidden="true" />
+              In huis
+            </span>
+          ) : ing.supermarket ? (
+            <span className="inline-flex items-center gap-1 font-medium text-ahBlue">
               <i className="ph ph-storefront text-[10px]" aria-hidden="true" />
               {ing.supermarket}
             </span>
-          )}
+          ) : null}
         </div>
       </div>
-      <span className="shrink-0 text-sm font-semibold text-ink">
-        {ing.price > 0 ? formatEuro(ing.price) : '—'}
+      <span className={`shrink-0 text-sm font-semibold ${ing.is_pantry ? 'text-green-600' : 'text-ink'}`}>
+        {ing.is_pantry ? '€ 0,—' : ing.price > 0 ? formatEuro(ing.price) : '—'}
       </span>
     </li>
   );

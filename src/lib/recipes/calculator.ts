@@ -8,6 +8,27 @@ import type {
 
 const SERVINGS = 4;
 
+// Ingrediënten die standaard in huis zouden moeten zijn; prijs = €0.
+const PANTRY_KEYWORDS = [
+  'olijfolie', 'zonnebloemolie', 'olie', 'boter',
+  'zout', 'peper', 'zwarte peper', 'witte peper', 'cayennepeper',
+  'suiker', 'poedersuiker', 'bruine suiker',
+  'bloem', 'maizena',
+  'azijn', 'wijnazijn', 'balsamicoazijn', 'appelazijn',
+  'knoflookpoeder', 'uienpoeder',
+  'paprikapoeder', 'komijn', 'kurkuma', 'kerrie', 'curry',
+  'oregano', 'basilicum', 'tijm', 'rozemarijn', 'peterselie',
+  'laurierblad', 'nootmuskaat', 'kaneel', 'chiliflakes',
+  'sojasaus', 'worcestershiresaus',
+  'mosterd', 'mayonaise',
+  'water', 'ijs',
+];
+
+function isPantryItem(name: string): boolean {
+  const n = normalize(name);
+  return PANTRY_KEYWORDS.some((k) => n.includes(k));
+}
+
 function normalize(s: string): string {
   return s.toLowerCase().trim();
 }
@@ -75,12 +96,14 @@ function priceRecipe(
   }
 
   for (const name of concept.required_standard_ingredients ?? []) {
-    const entry = findPrice(name, prices);
+    const pantry = isPantryItem(name);
+    const entry = pantry ? undefined : findPrice(name, prices);
     if (entry?.image_url && !imageUrl) imageUrl = entry.image_url;
     ingredients.push({
       name,
-      price: entry?.price ?? 0,
+      price: pantry ? 0 : (entry?.price ?? 0),
       is_deal: false,
+      is_pantry: pantry,
       image_url: entry?.image_url ?? null,
     });
   }
