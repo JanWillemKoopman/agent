@@ -88,8 +88,8 @@ export function TrackerTab() {
       )}
 
       {/* Sticky "Mijn producten" knop */}
-      <div className="fixed inset-x-0 bottom-16 z-30 px-4 pointer-events-none"
-           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <div className="fixed inset-x-0 z-30 px-4 pb-3 pointer-events-none"
+           style={{ bottom: 'calc(3.75rem + env(safe-area-inset-bottom))' }}>
         <div className="mx-auto max-w-2xl pointer-events-auto">
           <button
             type="button"
@@ -274,7 +274,8 @@ function ProductsOverlay({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-appBg">
       {/* Topbalk */}
-      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-surface px-3 py-3">
+      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-surface px-3"
+        style={{ paddingTop: 'calc(0.75rem + env(safe-area-inset-top))', paddingBottom: '0.75rem' }}>
         <button
           type="button"
           aria-label="Terug"
