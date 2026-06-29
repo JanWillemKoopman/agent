@@ -1,6 +1,6 @@
 'use client';
 
-export type TabKey = 'recepten' | 'instellingen' | 'account';
+export type TabKey = 'recepten' | 'tracker' | 'instellingen' | 'account';
 
 interface NavItem {
   key: TabKey;
@@ -16,6 +16,12 @@ const ITEMS: NavItem[] = [
     label: 'Recepten',
     icon: 'ph ph-cooking-pot',
     activeIcon: 'ph-fill ph-cooking-pot',
+  },
+  {
+    key: 'tracker',
+    label: 'Tracker',
+    icon: 'ph ph-bell',
+    activeIcon: 'ph-fill ph-bell',
   },
   {
     key: 'instellingen',

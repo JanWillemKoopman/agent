@@ -1,6 +1,6 @@
 import { getSupabaseServerClient, getAccessTokenFromRequest } from '@/lib/supabase/server';
 import { runKitchenBrigade } from '@/lib/recipes/pipeline';
-import { sseEvent } from '@/lib/sse';
+import { sseEvent, sseComment } from '@/lib/sse';
 import type { UserSettings } from '@/lib/types';
 
 // Edge runtime: houdt de SSE-stream open tijdens de AI-stappen en omzeilt de

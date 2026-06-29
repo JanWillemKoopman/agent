@@ -71,6 +71,14 @@ export interface FinalRecipe {
   image_url: string | null;
 }
 
+// Tracker: een bijgehouden product.
+export interface TrackedProduct {
+  id: string;
+  user_id: string;
+  product_name: string;
+  created_at: string;
+}
+
 // SSE-statusupdates richting de frontend.
 export interface StatusEvent {
   step: number;
