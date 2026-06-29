@@ -1,133 +1,103 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Header } from './components/Header';
+import { GenerateButton } from './components/GenerateButton';
+import { StatusStream } from './components/StatusStream';
+import { RecipeGrid } from './components/RecipeGrid';
+import { SettingsModal } from './components/SettingsModal';
+import { UpdateBanner } from './components/UpdateBanner';
+import { useGenerateRecipes } from './hooks/useGenerateRecipes';
+import { useServiceWorkerUpdate } from './hooks/useServiceWorkerUpdate';
+import {
+  fetchSavedRecipes,
+  saveRecipe,
+  deleteRecipe,
+  type SavedRecipe,
+} from '@/lib/api';
+import { ensureAnonymousSession } from '@/lib/supabase/client';
+import type { FinalRecipe } from '@/lib/types';
 
 export default function Home() {
-  const [isInstallable, setIsInstallable] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [isOnline, setIsOnline] = useState(true);
-  const [notification, setNotification] = useState<string>('');
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [saved, setSaved] = useState<SavedRecipe[]>([]);
+  const { statusLines, recipes, isGenerating, error, generate } = useGenerateRecipes();
+  const { updateAvailable, refresh } = useServiceWorkerUpdate();
 
+  // Zorg voor een anonieme sessie en laad bewaarde recepten bij mount.
   useEffect(() => {
-    const handleBeforeInstallPrompt = (e: any) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setIsInstallable(true);
-    };
-
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
+    ensureAnonymousSession()
+      .then(() => fetchSavedRecipes())
+      .then(setSaved)
+      .catch((e) => console.error('Init mislukt:', e));
   }, []);
 
-  const handleInstall = async () => {
-    if (!deferredPrompt) return;
+  const savedTitles = useMemo(
+    () => new Set(saved.map((s) => s.title)),
+    [saved]
+  );
 
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-
-    if (outcome === 'accepted') {
-      setDeferredPrompt(null);
-      setIsInstallable(false);
-      setNotification('App succesvol geïnstalleerd!');
-    }
-  };
-
-  const handleNotification = async () => {
-    const permission = Notification.permission;
-
-    if (permission === 'denied') {
-      setNotification('Notificatiepermissies zijn geweigerd');
-      return;
-    }
-
-    if (permission === 'granted') {
-      const registration = await navigator.serviceWorker.ready;
-      if (registration.pushManager) {
-        setNotification('✅ Push-notificaties zijn ingeschakeld');
+  const handleToggleSave = async (recipe: FinalRecipe) => {
+    const existing = saved.find((s) => s.title === recipe.recipe_name);
+    try {
+      if (existing) {
+        await deleteRecipe(existing.id);
+        setSaved((prev) => prev.filter((s) => s.id !== existing.id));
+      } else {
+        const created = await saveRecipe(recipe);
+        setSaved((prev) => [created, ...prev]);
       }
+    } catch (e) {
+      console.error('Bewaren mislukt:', e);
     }
   };
+
+  const savedRecipeObjects = useMemo(
+    () => saved.map((s) => s.recipe_json),
+    [saved]
+  );
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 text-center">
-          <div className="mb-8">
-            <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg
-                className="w-10 h-10 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 10V3L4 14h7v7l9-11h-7z"
-                />
-              </svg>
-            </div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">PWA App</h1>
-            <p className="text-gray-600 mb-4">Progressive Web App</p>
+    <div className="min-h-screen bg-appBg">
+      <Header onOpenSettings={() => setSettingsOpen(true)} />
+
+      <main className="mx-auto max-w-2xl space-y-5 p-4 pb-24">
+        <GenerateButton onClick={generate} isGenerating={isGenerating} />
+
+        <StatusStream lines={statusLines} isGenerating={isGenerating} />
+
+        {error && (
+          <div className="rounded-card border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            {error}
           </div>
+        )}
 
-          <div className="space-y-4 mb-6">
-            <div className={`p-4 rounded-lg flex items-center justify-between ${isOnline ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
-              <span className={`font-medium ${isOnline ? 'text-green-700' : 'text-red-700'}`}>
-                {isOnline ? '🟢 Online' : '🔴 Offline'}
-              </span>
-            </div>
-          </div>
+        <RecipeGrid
+          recipes={recipes}
+          savedTitles={savedTitles}
+          onToggleSave={handleToggleSave}
+          title={recipes.length > 0 ? 'Voorgestelde recepten' : undefined}
+        />
 
-          <div className="space-y-3">
-            {isInstallable && (
-              <button
-                onClick={handleInstall}
-                className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold py-3 px-4 rounded-lg hover:shadow-lg transition-all duration-200 transform hover:scale-105"
-              >
-                📲 App Installeren
-              </button>
-            )}
+        {recipes.length === 0 && savedRecipeObjects.length > 0 && (
+          <RecipeGrid
+            recipes={savedRecipeObjects}
+            savedTitles={savedTitles}
+            onToggleSave={handleToggleSave}
+            title="Bewaarde recepten"
+          />
+        )}
 
-            <button
-              onClick={handleNotification}
-              className="w-full bg-blue-500 text-white font-semibold py-3 px-4 rounded-lg hover:bg-blue-600 transition-all duration-200"
-            >
-              🔔 Notificaties Inschakelen
-            </button>
+        {recipes.length === 0 && !isGenerating && savedRecipeObjects.length === 0 && (
+          <p className="pt-8 text-center text-sm text-gray-500">
+            Druk op de knop om goedkope recepten te genereren op basis van de
+            aanbiedingen van deze week.
+          </p>
+        )}
+      </main>
 
-            <button
-              onClick={() => setNotification('')}
-              className="w-full bg-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-lg hover:bg-gray-300 transition-all duration-200"
-            >
-              ❌ Meldingen Wissen
-            </button>
-          </div>
-
-          {notification && (
-            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-blue-700 font-medium text-sm">{notification}</p>
-            </div>
-          )}
-
-          <div className="mt-8 text-gray-600 text-sm space-y-1">
-            <p>✅ Installeerbaar op homescreen</p>
-            <p>✅ Offline-modus</p>
-            <p>✅ Push-notificaties</p>
-          </div>
-        </div>
-      </div>
-    </main>
+      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <UpdateBanner visible={updateAvailable} onRefresh={refresh} />
+    </div>
   );
 }

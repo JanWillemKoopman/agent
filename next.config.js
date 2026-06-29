@@ -2,7 +2,6 @@
 const nextConfig = {
   reactStrictMode: true,
   compress: true,
-  swcMinify: true,
   headers: async () => [
     {
       source: '/sw.js',

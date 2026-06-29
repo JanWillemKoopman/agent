@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pwa-v1';
+const CACHE_NAME = 'recepten-v2';
 const urlsToCache = [
   '/',
   '/manifest.json',
@@ -10,7 +10,15 @@ self.addEventListener('install', (event) => {
       return cache.addAll(urlsToCache);
     })
   );
-  self.skipWaiting();
+  // Bewust GEEN skipWaiting hier: de nieuwe SW blijft 'waiting' zodat de
+  // frontend een "Update beschikbaar" banner kan tonen. Activatie gebeurt pas
+  // na een SKIP_WAITING bericht (zie hieronder).
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('activate', (event) => {
@@ -30,6 +38,11 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') {
+    return;
+  }
+
+  // API-routes nooit cachen — altijd vers ophalen (dynamische data + SSE).
+  if (new URL(event.request.url).pathname.startsWith('/api/')) {
     return;
   }
 

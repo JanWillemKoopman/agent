@@ -35,3 +35,15 @@ Dit document beschrijft de UI-richtlijnen gebaseerd op de mobiele interface van 
 *   **Modale/Pop-ups:** Gebruik een simpele witte overlay met scherpe randen.
 *   **Afbeeldingen:** Producten worden altijd vrijstaand (zonder achtergrond) getoond.
 *   **Lijsten:** Gebruik 'accordion' of 'chevron' iconen (>) voor secties als 'Nu populair' of 'Vaak gekocht'.
+
+## 6. Implementatie-tokens (code)
+Deze tokens zijn gecodeerd in `tailwind.config.js` (`theme.extend`) en als CSS-variabelen in `src/app/globals.css`.
+
+*   **Kleuren (Tailwind):** `ahBlue #00a0e2`, `bonusOrange #f28e00`, `dark #1b1b1b`, `appBg #f4f5f7`, `surface #ffffff`.
+*   **Font:** `system-ui, sans-serif` (strak, schreefloos).
+*   **Iconen:** [Phosphor Icons](https://phosphor.icons) via CDN, **Regular/outline-stijl**.
+    *   24px voor hoofdnavigatie (bijv. `ph-gear` in de header).
+    *   20px/16px voor in-line elementen (badges, knoppen, statusregels).
+*   **Cards:** `box-shadow: 0 2px 8px rgba(0,0,0,0.05)` (Tailwind: `shadow-card`), afgeronde hoeken `8px` (`rounded-card`).
+*   **Knoppen:** pill-vormig, `border-radius: 9999px` (`rounded-pill`). Primaire actie in `ahBlue`.
+*   **Bonus-badge:** rechthoekige `bonusOrange` badge met witte, vetgedrukte hoofdletters (bijv. "3x BONUS DEALS").
