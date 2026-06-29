@@ -24,10 +24,8 @@ export function useServiceWorkerUpdate() {
 
     let pollInterval: ReturnType<typeof setInterval> | undefined;
     let onVisibilityChange: (() => void) | undefined;
-    let reg: ServiceWorkerRegistration | undefined;
 
     navigator.serviceWorker.ready.then((registration) => {
-      reg = registration;
 
       const promoteWaiting = (worker: ServiceWorker | null) => {
         if (worker && navigator.serviceWorker.controller) {

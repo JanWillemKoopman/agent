@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/server';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { getSupabaseServerClient, getAccessTokenFromRequest } from '@/lib/supabase/server';
 
 export const runtime = 'edge';
 
 export async function POST(request: Request) {
   try {
-    const supabase = createSupabaseServerClient();
+    const token = getAccessTokenFromRequest(request);
+    if (!token) {
+      return NextResponse.json({ error: 'Niet ingelogd.' }, { status: 401 });
+    }
+    const supabase = getSupabaseServerClient(token);
     const {
       data: { user },
     } = await supabase.auth.getUser();
