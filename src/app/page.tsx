@@ -121,6 +121,7 @@ function AppShell() {
       <Header
         onNavigateAccount={() => setTab('account')}
         onAppDownload={() => setShowAppDownload(true)}
+        onSettingsClick={() => setTab('instellingen')}
       />
 
       <main className="mx-auto max-w-2xl p-4 pb-28">

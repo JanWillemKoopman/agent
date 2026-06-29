@@ -24,12 +24,6 @@ const ITEMS: NavItem[] = [
     activeIcon: 'ph-fill ph-bell',
   },
   {
-    key: 'instellingen',
-    label: 'Instellingen',
-    icon: 'ph ph-sliders-horizontal',
-    activeIcon: 'ph-fill ph-sliders-horizontal',
-  },
-  {
     key: 'account',
     label: 'Account',
     icon: 'ph ph-user-circle',
