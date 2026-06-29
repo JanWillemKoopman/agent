@@ -83,7 +83,7 @@ function AppShell() {
 
   return (
     <div className="min-h-screen bg-appBg">
-      <Header />
+      <Header onNavigateAccount={() => setTab('account')} />
 
       <main className="mx-auto max-w-2xl p-4 pb-28">
         {tab === 'recepten' && (
