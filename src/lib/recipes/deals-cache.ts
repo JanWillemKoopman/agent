@@ -3,6 +3,14 @@ import { getSupabaseServiceClient } from '../supabase/server';
 import { forageDeals } from '../gemini/agents';
 import type { Deal } from '../types';
 
+function matchesTrackedProduct(dealName: string, productNames: string[]): boolean {
+  const dealNorm = dealName.toLowerCase();
+  return productNames.some((name) => {
+    const n = name.toLowerCase();
+    return dealNorm.includes(n) || n.includes(dealNorm);
+  });
+}
+
 // Hoe lang generate maximaal wacht op een nog lopende scrape voordat hij
 // terugvalt op live foraging.
 const WAIT_TIMEOUT_MS = 40_000;
@@ -84,6 +92,31 @@ async function resolveStoreDeals(
     // Geen run-rij, mislukt, of we wachtten te lang → live fallback.
     return forageDeals(store);
   }
+}
+
+/**
+ * Controleert voor één winkel of gecachte aanbiedingen beschikbaar zijn, en
+ * filtert op de opgegeven productnamen via een geval-loze substring-match.
+ * Geeft null terug als er geen 'done' cache-run is → beller valt terug op live.
+ */
+export async function searchTrackerDealsFromCache(
+  productNames: string[],
+  store: string,
+): Promise<Deal[] | null> {
+  const service = getSupabaseServiceClient();
+  const day = amsterdamDate();
+
+  const { data: run } = await service
+    .from('deal_scrape_runs')
+    .select('status')
+    .eq('store', store)
+    .eq('deal_date', day)
+    .maybeSingle<{ status: string }>();
+
+  if (run?.status !== 'done') return null;
+
+  const allDeals = await readCachedDeals(service, store, day);
+  return allDeals.filter((d) => matchesTrackedProduct(d.product_name, productNames));
 }
 
 /**

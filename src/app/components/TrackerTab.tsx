@@ -180,7 +180,7 @@ function TrackerDealCard({ deal }: { deal: Deal }) {
               {deal.supermarket}
             </span>
           </div>
-          <p className="text-sm font-semibold text-navy capitalize">
+          <p className="text-sm font-semibold text-navy">
             {deal.product_name}
           </p>
         </div>

@@ -164,7 +164,7 @@ function IngredientRow({ ing }: { ing: PricedIngredient }) {
   return (
     <li className="flex items-center justify-between gap-3 px-4 py-3">
       <div className="min-w-0">
-        <p className="truncate text-sm font-medium capitalize text-ink">
+        <p className="truncate text-sm font-medium text-ink">
           {ing.name}
         </p>
         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted">

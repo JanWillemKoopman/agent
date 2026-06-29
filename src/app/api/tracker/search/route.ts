@@ -1,5 +1,6 @@
 import { getSupabaseServerClient, getAccessTokenFromRequest } from '@/lib/supabase/server';
 import { searchTrackerDealsForStore } from '@/lib/gemini/agents';
+import { searchTrackerDealsFromCache } from '@/lib/recipes/deals-cache';
 import type { UserSettings } from '@/lib/types';
 
 // Edge runtime: omzeilt de 10s serverless-timeout voor de Gemini-calls.
@@ -41,9 +42,13 @@ export async function POST(req: Request) {
     return Response.json({ deals: [] });
   }
 
-  // Zoek parallel per winkel of de producten in de aanbieding zijn.
+  // Zoek parallel per winkel — gebruik dagcache indien beschikbaar, anders live.
   const results = await Promise.allSettled(
-    stores.map((store) => searchTrackerDealsForStore(productNames, store))
+    stores.map(async (store) => {
+      const cached = await searchTrackerDealsFromCache(productNames, store);
+      if (cached !== null) return cached;
+      return searchTrackerDealsForStore(productNames, store);
+    })
   );
 
   const deals = results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
