@@ -14,7 +14,7 @@ import type { Deal, RecipeConcept, PriceMap } from '../types';
 const STORE_DEALS_URLS: Record<string, string> = {
   'Albert Heijn': 'https://www.ah.nl/bonus',
   'Jumbo': 'https://www.jumbo.com/aanbiedingen/nu',
-  'Aldi': 'https://www.aldi.nl/aanbiedingen.html',
+  'Aldi': 'https://www.aldi.nl/aanbiedingen-deze-week.html',
   // Plus en Lidl blokkeren directe scraping — Gemini zoekt deze via Google Search.
 };
 
