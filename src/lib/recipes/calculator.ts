@@ -53,15 +53,23 @@ function priceRecipe(
     if (deal) {
       bonusDealCount += 1;
       supermarkets.add(deal.supermarket);
+      // Gebruik bundle_price / min_quantity als effectieve kassaprijs per eenheid.
+      // Dat is de prijs die de klant daadwerkelijk betaalt (bv. bij "2e gratis":
+      // bundle_price=3.99, min_quantity=2 → effectief €1.995 per stuk).
+      const effectivePrice =
+        deal.bundle_price != null && deal.min_quantity > 1
+          ? deal.bundle_price / deal.min_quantity
+          : deal.deal_price;
       ingredients.push({
         name,
-        price: deal.deal_price,
+        price: effectivePrice,
         is_deal: true,
         original_price: deal.original_price ?? null,
         supermarket: deal.supermarket,
+        deal_description: deal.deal_description ?? null,
+        min_quantity: deal.min_quantity ?? 1,
       });
     } else {
-      // Aanbieding niet teruggevonden: tel als 0 zodat we niet crashen.
       ingredients.push({ name, price: 0, is_deal: true });
     }
   }

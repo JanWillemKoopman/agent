@@ -14,9 +14,18 @@ export interface UserSettings {
 // Stap 1 — Foragers: een gevonden aanbieding.
 export interface Deal {
   product_name: string;
+  /** Effectieve prijs per eenheid = kassaprijs / min_quantity. */
   deal_price: number;
   original_price: number | null;
   supermarket: string;
+  /** Soort aanbieding: single = losse korting, bogo = 2e gratis, multi_buy = bv "2 voor €5", percentage_off = % korting. */
+  deal_type: 'single' | 'bogo' | 'multi_buy' | 'percentage_off';
+  /** Minimale hoeveelheid te kopen voor de deal (1 bij single/percentage_off, 2+ bij bogo/multi_buy). */
+  min_quantity: number;
+  /** Totale kassaprijs voor min_quantity eenheden (null bij single/percentage_off). */
+  bundle_price: number | null;
+  /** Leesbare omschrijving, bv. "2e gratis", "2 voor €5,00", "50% korting". */
+  deal_description: string | null;
 }
 
 // Stap 2 — Chefs: een receptconcept.
@@ -41,10 +50,11 @@ export interface PricedIngredient {
   name: string;
   price: number;
   is_deal: boolean;
-  // Reguliere prijs vóór de aanbieding (alleen bij deals, indien bekend).
   original_price?: number | null;
   supermarket?: string;
   image_url?: string | null;
+  deal_description?: string | null;
+  min_quantity?: number;
 }
 
 export interface FinalRecipe {

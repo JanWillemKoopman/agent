@@ -4,6 +4,7 @@ import {
   criticFilter,
   shopPrices,
   CHEF_PERSONAS,
+  MAX_SHOPPER_CALLS,
 } from '../gemini/agents';
 import { calculateRecipes } from './calculator';
 import type { Deal, RecipeConcept, PriceMap, FinalRecipe } from '../types';
@@ -66,10 +67,11 @@ export async function runKitchenBrigade(
     bestConcepts = concepts.slice(0, 8);
   }
 
-  // --- Stap 4: The Shoppers -------------------------------------------------
+  // --- Stap 4: The Shoppers — chunk 1 recept per call, max MAX_SHOPPER_CALLS ------
   emit(4, 'Ontbrekende prijzen ophalen');
+  const shopChunks = chunk(bestConcepts, 1).slice(0, MAX_SHOPPER_CALLS);
   const shopResults = await Promise.allSettled(
-    chunk(bestConcepts, 2).map((c) => shopPrices(c, stores))
+    shopChunks.map((c) => shopPrices(c, stores))
   );
   const prices: PriceMap = {};
   for (const r of shopResults) {

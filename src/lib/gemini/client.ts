@@ -1,12 +1,10 @@
 import { GoogleGenAI } from '@google/genai';
 
 // Centrale model-ids. Hybride opzet:
-// - FLASH: snel — voor Foragers (stap 1) en Shoppers (stap 4).
-// - PRO:   culinaire kwaliteit — voor Chefs (stap 2) en Critic (stap 3).
-export const GEMINI_FLASH = 'gemini-2.5-flash';
-export const GEMINI_PRO = 'gemini-2.5-pro';
-// Default blijft Flash voor calls die geen expliciet model meegeven.
-export const GEMINI_MODEL = GEMINI_FLASH;
+// - FLASH_LITE: snel + goedkoop — voor Foragers (stap 1) en Shoppers (stap 4).
+// - CHEF:       culinaire kwaliteit — voor Chefs (stap 2) en Critic (stap 3).
+export const GEMINI_FLASH_LITE = 'gemini-3.1-flash-lite';
+export const GEMINI_CHEF = 'gemini-3.5-flash';
 
 let client: GoogleGenAI | null = null;
 
@@ -51,7 +49,7 @@ export async function generateStructured<T>(opts: {
 }): Promise<T> {
   const ai = getGeminiClient();
   const response = await ai.models.generateContent({
-    model: opts.model ?? GEMINI_MODEL,
+    model: opts.model ?? GEMINI_FLASH_LITE,
     contents: opts.prompt,
     config: {
       systemInstruction: opts.systemInstruction,
@@ -75,7 +73,7 @@ export async function generateGroundedJson<T>(opts: {
 }): Promise<T> {
   const ai = getGeminiClient();
   const response = await ai.models.generateContent({
-    model: opts.model ?? GEMINI_MODEL,
+    model: opts.model ?? GEMINI_FLASH_LITE,
     contents: opts.prompt,
     config: {
       systemInstruction: opts.systemInstruction,
