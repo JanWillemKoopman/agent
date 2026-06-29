@@ -6,9 +6,10 @@ import { useAuth } from '../auth-context';
 interface HeaderProps {
   onNavigateAccount?: () => void;
   onAppDownload?: () => void;
+  onSettingsClick?: () => void;
 }
 
-export function Header({ onNavigateAccount, onAppDownload }: HeaderProps) {
+export function Header({ onNavigateAccount, onAppDownload, onSettingsClick }: HeaderProps) {
   const { user, signOut } = useAuth();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -37,6 +38,16 @@ export function Header({ onNavigateAccount, onAppDownload }: HeaderProps) {
           FamApp
         </span>
       </div>
+
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={onSettingsClick}
+          aria-label="Instellingen"
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-line hover:text-navy"
+        >
+          <i className="ph ph-sliders-horizontal text-xl" aria-hidden="true" />
+        </button>
 
       <div className="relative" ref={menuRef}>
         <button
@@ -81,6 +92,7 @@ export function Header({ onNavigateAccount, onAppDownload }: HeaderProps) {
             </button>
           </div>
         )}
+      </div>
       </div>
     </header>
   );
