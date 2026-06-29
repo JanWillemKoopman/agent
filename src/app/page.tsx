@@ -13,6 +13,10 @@ import { useGenerateRecipes } from './hooks/useGenerateRecipes';
 import { useServiceWorkerUpdate } from './hooks/useServiceWorkerUpdate';
 import { useAuth } from './auth-context';
 import { PhotoOnboarding } from './components/PhotoOnboarding';
+import { InstallModal } from './components/InstallModal';
+import { InstallBanner } from './components/InstallBanner';
+import { AppDownloadPage } from './components/AppDownloadPage';
+import { useIOSInstallPrompt } from './hooks/useIOSInstallPrompt';
 import {
   fetchSavedRecipes,
   saveRecipe,
@@ -56,6 +60,9 @@ function AppShell() {
   });
   const [onboardingDone, setOnboardingDone] = useState(false);
 
+  const { showModal, showBanner, dismissModal, dismissBanner } = useIOSInstallPrompt();
+  const [showAppDownload, setShowAppDownload] = useState(false);
+
   const { statusLines, recipes, isGenerating, error, generate } =
     useGenerateRecipes();
   const { updateAvailable, refresh } = useServiceWorkerUpdate();
@@ -93,11 +100,27 @@ function AppShell() {
 
   return (
     <div className="min-h-screen bg-appBg">
+      {/* iOS install-flow: modal (eerste bezoek) → banner (fallback) */}
+      {showModal && <InstallModal onDone={dismissModal} onLater={dismissModal} />}
+      {showBanner && !showModal && (
+        <InstallBanner
+          onDismiss={dismissBanner}
+          onInstall={() => { dismissBanner(); setShowAppDownload(true); }}
+        />
+      )}
+
+      {/* App downloaden scherm (via header-dropdown of install-banner) */}
+      {showAppDownload && <AppDownloadPage onClose={() => setShowAppDownload(false)} />}
+
+      {/* Foto-onboarding voor nieuwe gebruikers */}
       {showOnboarding && !onboardingDone && (
         <PhotoOnboarding onDone={() => setOnboardingDone(true)} />
       )}
 
-      <Header onNavigateAccount={() => setTab('account')} />
+      <Header
+        onNavigateAccount={() => setTab('account')}
+        onAppDownload={() => setShowAppDownload(true)}
+      />
 
       <main className="mx-auto max-w-2xl p-4 pb-28">
         {tab === 'recepten' && (

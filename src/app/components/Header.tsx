@@ -5,9 +5,10 @@ import { useAuth } from '../auth-context';
 
 interface HeaderProps {
   onNavigateAccount?: () => void;
+  onAppDownload?: () => void;
 }
 
-export function Header({ onNavigateAccount }: HeaderProps) {
+export function Header({ onNavigateAccount, onAppDownload }: HeaderProps) {
   const { user, signOut } = useAuth();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -52,25 +53,27 @@ export function Header({ onNavigateAccount }: HeaderProps) {
         </button>
 
         {open && (
-          <div className="absolute right-0 mt-2 w-48 rounded-card border border-line bg-surface py-1 shadow-card">
+          <div className="absolute right-0 mt-2 w-52 rounded-card border border-line bg-surface py-1 shadow-card">
             <button
               type="button"
-              onClick={() => {
-                setOpen(false);
-                onNavigateAccount?.();
-              }}
+              onClick={() => { setOpen(false); onNavigateAccount?.(); }}
               className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-ink hover:bg-appBg"
             >
               <i className="ph ph-user-circle text-base text-muted" aria-hidden="true" />
               Account instellingen
             </button>
+            <button
+              type="button"
+              onClick={() => { setOpen(false); onAppDownload?.(); }}
+              className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-ink hover:bg-appBg"
+            >
+              <i className="ph ph-device-mobile text-base text-muted" aria-hidden="true" />
+              App downloaden
+            </button>
             <hr className="my-1 border-line" />
             <button
               type="button"
-              onClick={() => {
-                setOpen(false);
-                signOut();
-              }}
+              onClick={() => { setOpen(false); signOut(); }}
               className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-ink hover:bg-appBg"
             >
               <i className="ph ph-sign-out text-base text-muted" aria-hidden="true" />
