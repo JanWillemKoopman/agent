@@ -30,8 +30,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background: var(--app-bg);
   color: var(--ink);
-  min-height: 100vh;
-  /* Veilige ondermarge voor de vaste bottom-navigatie + iOS home-indicator */
+  overflow: hidden;
   overscroll-behavior-y: none;
 }
 
