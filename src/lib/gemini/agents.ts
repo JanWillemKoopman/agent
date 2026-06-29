@@ -15,8 +15,7 @@ const STORE_DEALS_URLS: Record<string, string> = {
   'Albert Heijn': 'https://www.ah.nl/bonus',
   'Jumbo': 'https://www.jumbo.com/aanbiedingen/nu',
   'Aldi': 'https://www.aldi.nl/aanbiedingen.html',
-  'Plus': 'https://www.plus.nl/aanbiedingen',
-  // Lidl has a dynamic weekly URL — Gemini searches for it via Google Search.
+  // Plus en Lidl blokkeren directe scraping — Gemini zoekt deze via Google Search.
 };
 
 const MAX_FORAGER_ITERATIONS = 5;
@@ -58,10 +57,24 @@ Geef de resultaten UITSLUITEND terug als een geldige JSON array (zonder uitleg, 
 - "supermarket" (string, gebruik exact "${store}")`;
 }
 
+const STORE_SEARCH_HINTS: Record<string, string> = {
+  'Plus':
+    'Zoek via Google Search naar "Plus supermarkt weekaanbiedingen" of "plus.nl aanbiedingen deze week" om de actuele deals te vinden. ' +
+    'Probeer ook de Google-zoekresultaten voor "site:plus.nl aanbiedingen" om directe productvermeldingen te vinden.',
+  'Lidl':
+    'Zoek via Google Search naar de huidige aanbiedingspagina van Lidl Nederland (de URL wijzigt wekelijks, bv. lidl.nl/nl/thema/...). ' +
+    'Probeer ook "Lidl Nederland weekaanbiedingen" of "lidl.nl aanbiedingen" om actuele deals te vinden.',
+};
+
 export async function forageDeals(store: string): Promise<Deal[]> {
-  const urlHint = STORE_DEALS_URLS[store]
-    ? `Raadpleeg de aanbiedingspagina op ${STORE_DEALS_URLS[store]} en gebruik Google Search om de meest actuele aanbiedingen te vinden.`
-    : `Zoek via Google Search naar de huidige aanbiedingspagina van ${store} Nederland (de URL wijzigt wekelijks) en haal daar de aanbiedingen vandaan.`;
+  let urlHint: string;
+  if (STORE_DEALS_URLS[store]) {
+    urlHint = `Raadpleeg de aanbiedingspagina op ${STORE_DEALS_URLS[store]} en gebruik Google Search om de meest actuele aanbiedingen te vinden.`;
+  } else if (STORE_SEARCH_HINTS[store]) {
+    urlHint = STORE_SEARCH_HINTS[store];
+  } else {
+    urlHint = `Zoek via Google Search naar de huidige aanbiedingspagina van ${store} Nederland en haal daar de aanbiedingen vandaan.`;
+  }
 
   const allDeals: Deal[] = [];
 
@@ -73,7 +86,8 @@ export async function forageDeals(store: string): Promise<Deal[]> {
     try {
       const raw = await generateGroundedJson<Deal[]>({ prompt, model: GEMINI_FLASH_LITE });
       batch = Array.isArray(raw) ? raw : [];
-    } catch {
+    } catch (err) {
+      console.error(`Forager iteratie ${i + 1} voor ${store} faalde:`, err);
       break;
     }
 
