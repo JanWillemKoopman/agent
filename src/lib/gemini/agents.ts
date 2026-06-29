@@ -10,8 +10,23 @@ import type { Deal, RecipeConcept, PriceMap } from '../types';
 // ---------------------------------------------------------------------------
 // Stap 1 — The Foragers (Gemini + google_search). Eén call per winkel.
 // ---------------------------------------------------------------------------
+
+const STORE_DEALS_URLS: Record<string, string> = {
+  'Albert Heijn': 'https://www.ah.nl/bonus',
+  'Jumbo': 'https://www.jumbo.com/aanbiedingen/nu',
+  'Aldi': 'https://www.aldi.nl/aanbiedingen.html',
+  'Plus': 'https://www.plus.nl/aanbiedingen',
+  // Lidl uses a dynamic weekly URL — Gemini zoekt deze zelf op via Google Search.
+};
+
 export async function forageDeals(store: string): Promise<Deal[]> {
+  const urlHint = STORE_DEALS_URLS[store]
+    ? `Raadpleeg de aanbiedingspagina op ${STORE_DEALS_URLS[store]} en gebruik Google Search om de meest actuele aanbiedingen te vinden.`
+    : `Zoek via Google Search naar de huidige aanbiedingspagina van ${store} Nederland (de URL wijzigt wekelijks) en haal daar de aanbiedingen vandaan.`;
+
   const prompt = `Zoek naar de top 15 beste actuele supermarktaanbiedingen van deze week voor ${store} in Nederland, specifiek in de categorieën verse groenten, vlees, vis en vegetarische vervangers.
+
+${urlHint}
 
 Geef de resultaten UITSLUITEND terug als een geldige JSON array (zonder uitleg, zonder markdown) waarin elk element deze velden heeft:
 - "product_name" (string)

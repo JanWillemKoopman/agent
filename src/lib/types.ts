@@ -1,6 +1,6 @@
 // Gedeelde datatypes voor de recepten-pipeline en frontend.
 
-export const SUPPORTED_STORES = ['Albert Heijn', 'Jumbo', 'Aldi'] as const;
+export const SUPPORTED_STORES = ['Albert Heijn', 'Jumbo', 'Aldi', 'Plus', 'Lidl'] as const;
 export type Store = (typeof SUPPORTED_STORES)[number];
 
 export interface UserSettings {
