@@ -12,6 +12,7 @@ import { AuthScreen } from './components/AuthScreen';
 import { UpdateBanner } from './components/UpdateBanner';
 import { useGenerateRecipes } from './hooks/useGenerateRecipes';
 import { useServiceWorkerUpdate } from './hooks/useServiceWorkerUpdate';
+import { useDealRefresh } from './hooks/useDealRefresh';
 import { useAuth } from './auth-context';
 import { PhotoOnboarding } from './components/PhotoOnboarding';
 import { InstallModal } from './components/InstallModal';
@@ -67,6 +68,9 @@ function AppShell() {
   const { statusLines, recipes, isGenerating, error, generate } =
     useGenerateRecipes();
   const { updateAvailable, refresh } = useServiceWorkerUpdate();
+
+  // Start bij sessie-start de achtergrond-scrape van aanbiedingen (vult de dagcache).
+  useDealRefresh();
 
   // Laad bewaarde recepten zodra de gebruiker is ingelogd.
   useEffect(() => {

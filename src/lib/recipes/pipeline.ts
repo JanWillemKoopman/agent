@@ -1,11 +1,11 @@
 import {
-  forageDeals,
   chefRecipes,
   criticFilter,
   shopPrices,
   CHEF_PERSONAS,
   MAX_SHOPPER_CALLS,
 } from '../gemini/agents';
+import { getCachedDealsOrForage } from './deals-cache';
 import { calculateRecipes } from './calculator';
 import type { Deal, RecipeConcept, PriceMap, FinalRecipe } from '../types';
 
@@ -29,17 +29,15 @@ export async function runKitchenBrigade(
   emit: Emit
 ): Promise<FinalRecipe[]> {
   // --- Stap 1: The Foragers -------------------------------------------------
+  // Leest de aanbiedingen uit de dagcache (gevuld door de achtergrond-scrape bij
+  // sessie-start) en valt per winkel terug op live foraging als die nog niet
+  // klaar of mislukt is.
   const storeList =
     stores.length > 1
       ? stores.slice(0, -1).join(', ') + ' en ' + stores[stores.length - 1]
       : stores[0];
-  emit(1, `Aanbiedingen zoeken bij ${storeList}…`);
-  const forageResults = await Promise.allSettled(stores.map((s) => forageDeals(s)));
-  const deals: Deal[] = forageResults.flatMap((r) => {
-    if (r.status === 'fulfilled') return r.value;
-    console.error('Forager faalde:', r.reason);
-    return [];
-  });
+  emit(1, `Aanbiedingen ophalen bij ${storeList}…`);
+  const deals: Deal[] = await getCachedDealsOrForage(stores);
 
   if (deals.length === 0) {
     throw new Error('Geen aanbiedingen gevonden voor de geselecteerde winkels.');

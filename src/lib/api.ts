@@ -96,6 +96,23 @@ export async function deleteTrackedProduct(id: string): Promise<void> {
   if (!res.ok && res.status !== 204) throw new Error('Kon product niet verwijderen.');
 }
 
+/**
+ * Start de achtergrond-scrape van de aanbiedingen voor de winkels van de
+ * gebruiker. Wordt bij sessie-start afgevuurd en NIET in de UI afgewacht: de
+ * server vult de dagcache terwijl de gebruiker de app gebruikt. Fouten worden
+ * stil genegeerd — generate valt sowieso terug op live foraging.
+ */
+export async function refreshDailyDeals(): Promise<void> {
+  try {
+    await fetch('/api/deals/refresh', {
+      method: 'POST',
+      headers: await authHeaders(),
+    });
+  } catch {
+    // Achtergrondtaak — bewust geen foutafhandeling richting de gebruiker.
+  }
+}
+
 export async function searchTrackerDeals(): Promise<Deal[]> {
   const res = await fetch('/api/tracker/search', {
     method: 'POST',
