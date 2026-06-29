@@ -8,6 +8,7 @@ export interface UserSettings {
   selected_stores: string[];
   min_price_pp: number;
   max_price_pp: number;
+  excluded_ingredients: string[];
   updated_at: string;
 }
 

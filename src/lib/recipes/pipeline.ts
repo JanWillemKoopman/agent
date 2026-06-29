@@ -26,7 +26,8 @@ export async function runKitchenBrigade(
   stores: string[],
   minPricePp: number,
   maxPricePp: number,
-  emit: Emit
+  emit: Emit,
+  excludedIngredients: string[] = []
 ): Promise<FinalRecipe[]> {
   // --- Stap 1: The Foragers -------------------------------------------------
   // Leest de aanbiedingen uit de dagcache (gevuld door de achtergrond-scrape bij
@@ -46,7 +47,7 @@ export async function runKitchenBrigade(
   // --- Stap 2: The Chefs ----------------------------------------------------
   emit(2, `Recepten bedenken met ${deals.length} actuele deals…`);
   const chefResults = await Promise.allSettled(
-    CHEF_PERSONAS.map((p) => chefRecipes(p, deals))
+    CHEF_PERSONAS.map((p) => chefRecipes(p, deals, excludedIngredients))
   );
   const concepts: RecipeConcept[] = chefResults.flatMap((r) => {
     if (r.status === 'fulfilled') return r.value;
@@ -96,5 +97,5 @@ export async function runKitchenBrigade(
       ? 'alle budgetten'
       : `€ ${minPricePp.toFixed(0)}–${maxPricePp.toFixed(0)} p.p.`;
   emit(5, `Recepten doorrekenen en filteren op ${budgetLabel}…`);
-  return calculateRecipes(bestConcepts, deals, prices, minPricePp, maxPricePp);
+  return calculateRecipes(bestConcepts, deals, prices, minPricePp, maxPricePp, excludedIngredients);
 }

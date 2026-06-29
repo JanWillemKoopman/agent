@@ -35,6 +35,7 @@ export async function POST(req: Request) {
     : ['Albert Heijn'];
   const minPricePp = settings?.min_price_pp ?? 0;
   const maxPricePp = settings?.max_price_pp ?? 100;
+  const excludedIngredients = settings?.excluded_ingredients ?? [];
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -53,7 +54,7 @@ export async function POST(req: Request) {
       }, 12_000);
 
       try {
-        const recipes = await runKitchenBrigade(stores, minPricePp, maxPricePp, emit);
+        const recipes = await runKitchenBrigade(stores, minPricePp, maxPricePp, emit, excludedIngredients);
         controller.enqueue(sseEvent('result', { recipes }));
       } catch (err) {
         console.error('Pipeline-fout:', err);
