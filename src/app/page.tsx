@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Header } from './components/Header';
 import { BottomNav, type TabKey } from './components/BottomNav';
 import { RecipeTab } from './components/RecipeTab';
+import { TrackerTab } from './components/TrackerTab';
 import { SettingsPage } from './components/SettingsPage';
 import { AccountPage } from './components/AccountPage';
 import { RecipeDetail } from './components/RecipeDetail';
@@ -136,6 +137,7 @@ function AppShell() {
             onOpen={setDetail}
           />
         )}
+        {tab === 'tracker' && <TrackerTab />}
         {tab === 'instellingen' && <SettingsPage />}
         {tab === 'account' && <AccountPage />}
       </main>

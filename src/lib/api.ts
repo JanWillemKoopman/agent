@@ -1,7 +1,7 @@
 'use client';
 
 import { getAccessToken } from './supabase/client';
-import type { UserSettings, FinalRecipe } from './types';
+import type { UserSettings, FinalRecipe, TrackedProduct, Deal } from './types';
 
 async function authHeaders(): Promise<HeadersInit> {
   const accessToken = await getAccessToken();
@@ -55,4 +55,53 @@ export async function deleteRecipe(id: string): Promise<void> {
     headers: await authHeaders(),
   });
   if (!res.ok && res.status !== 204) throw new Error('Kon recept niet verwijderen.');
+}
+
+// --- Tracker -----------------------------------------------------------------
+
+export async function fetchTrackedProducts(): Promise<TrackedProduct[]> {
+  const res = await fetch('/api/tracker/products', { headers: await authHeaders() });
+  if (!res.ok) throw new Error('Kon bijgehouden producten niet laden.');
+  return res.json();
+}
+
+export async function addTrackedProduct(productName: string): Promise<TrackedProduct> {
+  const res = await fetch('/api/tracker/products', {
+    method: 'POST',
+    headers: await authHeaders(),
+    body: JSON.stringify({ product_name: productName }),
+  });
+  if (!res.ok) throw new Error('Kon product niet toevoegen.');
+  return res.json();
+}
+
+export async function updateTrackedProduct(
+  id: string,
+  productName: string
+): Promise<TrackedProduct> {
+  const res = await fetch(`/api/tracker/products?id=${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: await authHeaders(),
+    body: JSON.stringify({ product_name: productName }),
+  });
+  if (!res.ok) throw new Error('Kon product niet bijwerken.');
+  return res.json();
+}
+
+export async function deleteTrackedProduct(id: string): Promise<void> {
+  const res = await fetch(`/api/tracker/products?id=${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: await authHeaders(),
+  });
+  if (!res.ok && res.status !== 204) throw new Error('Kon product niet verwijderen.');
+}
+
+export async function searchTrackerDeals(): Promise<Deal[]> {
+  const res = await fetch('/api/tracker/search', {
+    method: 'POST',
+    headers: await authHeaders(),
+  });
+  if (!res.ok) throw new Error('Kon aanbiedingen niet zoeken.');
+  const data = await res.json();
+  return data.deals ?? [];
 }

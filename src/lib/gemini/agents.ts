@@ -266,4 +266,62 @@ Ga NIET zelf rekenen; geef alleen losse prijzen.`;
   return await generateGroundedJson<PriceMap>({ prompt, model: GEMINI_FLASH_LITE });
 }
 
+// ---------------------------------------------------------------------------
+// Tracker — zoek of specifieke producten deze week in de aanbieding zijn.
+// ---------------------------------------------------------------------------
+
+/**
+ * Controleert voor één winkel of de opgegeven producten in de aanbieding zijn.
+ * Retourneert alleen producten die daadwerkelijk kortingen hebben.
+ */
+export async function searchTrackerDealsForStore(
+  productNames: string[],
+  store: string
+): Promise<Deal[]> {
+  let urlHint: string;
+  if (STORE_DEALS_URLS[store]) {
+    urlHint = `Raadpleeg ${STORE_DEALS_URLS[store]} en gebruik Google Search.`;
+  } else if (STORE_SEARCH_HINTS[store]) {
+    urlHint = STORE_SEARCH_HINTS[store];
+  } else {
+    urlHint = `Zoek via Google Search naar actuele aanbiedingen van ${store} Nederland.`;
+  }
+
+  const productList = productNames.map((n) => `- ${n}`).join('\n');
+
+  const prompt = `Controleer of de volgende producten deze week in de aanbieding zijn bij ${store} in Nederland.
+
+${urlHint}
+
+Te controleren producten:
+${productList}
+
+Geef de resultaten UITSLUITEND terug als een geldige JSON array (zonder uitleg, zonder markdown).
+Neem ALLEEN producten op die daadwerkelijk kortingen hebben bij ${store} deze week.
+Als er geen aanbiedingen zijn geef dan een lege array: []
+
+Elk element in de array heeft deze velden:
+- "product_name" (string: gebruik de productnaam zoals opgegeven of een specifiekere variant, bv. "Kipfilet" → "AH Kipfilet 500g")
+- "deal_type" (string: "single" | "bogo" | "multi_buy" | "percentage_off")
+- "min_quantity" (number: 1 bij single/percentage_off, 2+ bij bogo/multi_buy)
+- "bundle_price" (number of null)
+- "deal_price" (number: effectieve prijs per eenheid)
+- "original_price" (number of null)
+- "deal_description" (string of null: bv. "2e gratis", "50% korting")
+- "supermarket" (string: gebruik exact "${store}")`;
+
+  let result: Deal[];
+  try {
+    const raw = await generateGroundedJson<Deal[]>({ prompt, model: GEMINI_FLASH_LITE });
+    result = Array.isArray(raw) ? raw : [];
+  } catch (err) {
+    console.error(`Tracker-zoekopdracht voor ${store} faalde:`, err);
+    return [];
+  }
+
+  return result
+    .map((d) => ({ ...d, supermarket: d.supermarket || store }))
+    .filter((d) => d.product_name && typeof d.deal_price === 'number');
+}
+
 export { MAX_SHOPPER_CALLS };
