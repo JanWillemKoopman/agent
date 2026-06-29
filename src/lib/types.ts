@@ -50,6 +50,7 @@ export interface PricedIngredient {
   name: string;
   price: number;
   is_deal: boolean;
+  is_pantry?: boolean;
   original_price?: number | null;
   supermarket?: string;
   image_url?: string | null;
