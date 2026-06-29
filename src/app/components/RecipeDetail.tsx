@@ -64,10 +64,10 @@ export function RecipeDetail({
         {/* Titel + omschrijving */}
         <section className="space-y-2">
           <div className="flex flex-wrap items-center gap-1.5">
-            {recipe.bonus_deal_count > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-md bg-bonusOrange px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white">
+            {recipe.korting_deal_count > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-md bg-kortingOrange px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white">
                 <i className="ph-fill ph-tag text-xs" aria-hidden="true" />
-                {recipe.bonus_deal_count}x bonus
+                {recipe.korting_deal_count}x korting
               </span>
             )}
             <span className="inline-flex items-center gap-1 rounded-md bg-appBg px-2 py-0.5 text-[11px] font-medium text-muted">
@@ -169,7 +169,7 @@ function IngredientRow({ ing }: { ing: PricedIngredient }) {
         </p>
         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted">
           {ing.is_deal && (
-            <span className="inline-flex items-center gap-1 font-semibold text-bonusOrange">
+            <span className="inline-flex items-center gap-1 font-semibold text-kortingOrange">
               <i className="ph-fill ph-tag text-[10px]" aria-hidden="true" />
               Aanbieding
               {ing.original_price ? (

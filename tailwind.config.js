@@ -12,7 +12,7 @@ module.exports = {
         ahBlue: '#00a0e2',
         ahBlueDark: '#0089c3',
         ahBlueSoft: '#e6f6fd',
-        bonusOrange: '#f28e00',
+        kortingOrange: '#f28e00',
         navy: '#21303f', // donkere balk + koppen (allerhande-stijl)
         ink: '#1a1a1a', // primaire tekst
         muted: '#6b7785', // secundaire tekst

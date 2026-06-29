@@ -64,7 +64,7 @@ export interface FinalRecipe {
   instructions: string[];
   servings: number;
   supermarkets: string[];
-  bonus_deal_count: number;
+  korting_deal_count: number;
   total_price: number;
   price_per_person: number;
   image_url: string | null;

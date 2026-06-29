@@ -127,7 +127,7 @@ export const CHEF_PERSONAS: ChefPersona[] = [
   {
     id: 'Chef Budget',
     systemInstruction:
-      'Je bent Chef Budget. Bedenk 4 uiterst goedkope 4-persoons dinerrecepten die maximaal gebruik maken van de bonusaanbiedingen en zo min mogelijk dure standaardingrediënten bevatten.',
+      'Je bent Chef Budget. Bedenk 4 uiterst goedkope 4-persoons dinerrecepten die maximaal gebruik maken van de kortingaanbiedingen en zo min mogelijk dure standaardingrediënten bevatten.',
   },
   {
     id: 'Chef Familie',

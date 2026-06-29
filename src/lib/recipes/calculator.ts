@@ -45,13 +45,13 @@ function priceRecipe(
 ): FinalRecipe {
   const ingredients: PricedIngredient[] = [];
   const supermarkets = new Set<string>();
-  let bonusDealCount = 0;
+  let kortingDealCount = 0;
   let imageUrl: string | null = null;
 
   for (const name of concept.base_deal_ingredients ?? []) {
     const deal = findDeal(name, deals);
     if (deal) {
-      bonusDealCount += 1;
+      kortingDealCount += 1;
       supermarkets.add(deal.supermarket);
       // Gebruik bundle_price / min_quantity als effectieve kassaprijs per eenheid.
       // Dat is de prijs die de klant daadwerkelijk betaalt (bv. bij "2e gratis":
@@ -95,7 +95,7 @@ function priceRecipe(
     instructions: concept.instructions ?? [],
     servings: SERVINGS,
     supermarkets: Array.from(supermarkets),
-    bonus_deal_count: bonusDealCount,
+    korting_deal_count: kortingDealCount,
     total_price: round2(total),
     price_per_person: round2(perPerson),
     image_url: imageUrl,

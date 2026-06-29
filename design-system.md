@@ -4,7 +4,7 @@ Dit document beschrijft de UI-richtlijnen gebaseerd op de mobiele interface van 
 
 ## 1. Kleurenpalet & Branding
 *   **Primary (AH Blauw):** `#00a0e2` (Header-logo, inlog-knop, primaire actie-knoppen).
-*   **Bonus Oranje (Aanbiedingen):** `#f28e00` (Gebruik dit voor actie-labels: "2e gratis", "25% korting", "Bonus").
+*   **Korting Oranje (Aanbiedingen):** `#f28e00` (Gebruik dit voor actie-labels: "2e gratis", "25% korting", "Korting").
 *   **Action Blue (Secondary):** `#00a0e2` (De ronde '+' knoppen en 'Kies' knoppen in de productlijsten).
 *   **Background:** `#ffffff` (Wit) voor secties, `#f4f5f7` (Lichtgrijs) voor de achtergrond van productkaarten en pagina-containers.
 *   **Text:** `#1b1b1b` (Zwart/donkergrijs voor titels en beschrijvingen).
@@ -41,7 +41,7 @@ Deze tokens zijn gecodeerd in `tailwind.config.js` (`theme.extend`) en als CSS-v
 
 *   **Kleuren (Tailwind):**
     *   `ahBlue #00a0e2` (primaire actie), `ahBlueDark #0089c3` (hover), `ahBlueSoft #e6f6fd` (zachte vlakken/badges).
-    *   `bonusOrange #f28e00` (aanbiedingen).
+    *   `kortingOrange #f28e00` (aanbiedingen).
     *   `navy #21303f` (koppen + donkere accenten), `ink #1a1a1a` (tekst), `muted #6b7785` (secundaire tekst), `line #e6e8eb` (randen).
     *   `appBg #f5f6f7` (pagina-achtergrond), `surface #ffffff` (kaarten/secties).
 *   **Font:** `Inter` (via Google Fonts), met `system-ui` als fallback — strak, humanistisch, dicht bij de AH-huisstijl.
@@ -50,12 +50,12 @@ Deze tokens zijn gecodeerd in `tailwind.config.js` (`theme.extend`) en als CSS-v
     *   20px/16px voor in-line elementen (badges, knoppen, statusregels).
 *   **Cards:** zachte schaduw `shadow-card`, afgeronde hoeken `12px` (`rounded-card`).
 *   **Knoppen:** pill-vormig (`rounded-pill`). Primaire actie in `ahBlue` met `ahBlueDark` hover.
-*   **Bonus-badge:** afgeronde `bonusOrange` badge met witte, vetgedrukte hoofdletters + `ph-tag` icoon (bijv. "3x BONUS").
+*   **Korting-badge:** afgeronde `kortingOrange` badge met witte, vetgedrukte hoofdletters + `ph-tag` icoon (bijv. "3x KORTING").
 
 ## 7. App-structuur (FamApp)
 *   **Header:** witte balk met FamApp-logo (blauw vierkant + `ph-cooking-pot`) en woordmerk in `navy`.
 *   **Bottom-navigatie:** vaste balk onderaan met icoon + label per pagina (Recepten, Instellingen, Account). Uitbreidbaar via de `ITEMS`-lijst in `BottomNav.tsx`.
 *   **Recepten (lege staat):** intro-tekst + genereer-knop horizontaal én verticaal gecentreerd.
-*   **Receptkaarten:** géén afbeeldingen — strakke tekstkaart met bonus-badge, titel, prijs p.p. en winkel. Klikbaar naar detail.
+*   **Receptkaarten:** géén afbeeldingen — strakke tekstkaart met korting-badge, titel, prijs p.p. en winkel. Klikbaar naar detail.
 *   **Recept-detail:** full-screen overlay met prijs-samenvatting, ingrediënten-tabel (prijs, aanbieding, winkel) en uitgeschreven bereiding ("Aan de slag", genummerde stappen).
 *   **Login:** e-mail + wachtwoord (Supabase Auth) met een gecentreerd login/registratie-scherm.
