@@ -39,7 +39,7 @@ function buildForagerPrompt(
 ${urlHint}${exclusion}
 
 Geef de resultaten UITSLUITEND terug als een geldige JSON array (zonder uitleg, zonder markdown) waarin elk element deze velden heeft:
-- "product_name" (string)
+- "product_name" (string: de officiële productnaam zoals vermeld in de supermarkt, inclusief merk en gewicht/volume indien van toepassing — bv. "AH Kipfilet 600g", "Jumbo Halfvolle melk 1L", "Aldi Verse zalm 2 stuks 300g", "Plus Biologische spinazie 200g")
 - "deal_type" (string: exact één van: "single", "bogo", "multi_buy", "percentage_off")
   • single = losse prijs-aanbieding (bv. "nu €1,99")
   • bogo = 2e gratis (koop 2, betaal 1)
@@ -183,8 +183,8 @@ Let op: bij aanbiedingen met min_quantity > 1 (bv. "2e gratis") moeten recepten 
 Bedenk de recepten volgens jouw specialisatie. Geef voor elk recept terug:
 - "recipe_name"
 - "description": één korte, smakelijke zin
-- "base_deal_ingredients": welke aanbiedingen uit de lijst je gebruikt
-- "required_standard_ingredients": welke reguliere (niet-aanbieding) producten nog nodig zijn
+- "base_deal_ingredients": exact de product_name-waarden uit de bovenstaande aanbiedingenlijst die je gebruikt — kopieer de volledige officiële naam inclusief merk en gewicht (bv. "AH Kipfilet 600g"), gebruik GEEN verkorte of generieke varianten
+- "required_standard_ingredients": reguliere producten die NIET in de aanbiedingenlijst staan, inclusief de benodigde hoeveelheid voor 4 personen (bv. "500g wortelen", "2 uien", "1L volle melk", "200g pasta") — geen pantry-basisproducten zoals zout, peper, olie of bloem
 - "instructions": de volledige bereiding als array van duidelijke stappen (5 tot 8 korte stappen) voor 4 personen`;
 
   const result = await generateStructured<{ recipes: RecipeConcept[] }>({
@@ -253,13 +253,13 @@ export async function shopPrices(
   );
   if (ingredients.length === 0) return {};
 
-  const prompt = `Zoek via Google Search naar de actuele, reguliere prijzen en bijbehorende productafbeeldings-URL's van de volgende standaard ingrediënten bij deze supermarkten: ${stores.join(', ')}.
+  const prompt = `Zoek via Google Search naar de actuele, reguliere prijzen en bijbehorende productafbeeldings-URL's van de volgende ingrediënten bij deze supermarkten: ${stores.join(', ')}.
 
 Ingrediënten: ${ingredients.join(', ')}
 
-Geef de data UITSLUITEND terug als een geldige JSON-map (zonder uitleg, zonder markdown) waarbij elke sleutel de exacte ingrediëntnaam is en de waarde een object met:
-- "price" (number, reguliere prijs in euro's)
-- "image_url" (string met product-afbeelding URL, of null)
+Geef de data UITSLUITEND terug als een geldige JSON-map (zonder uitleg, zonder markdown) waarbij elke sleutel exact overeenkomt met de ingrediëntnaam zoals hierboven opgegeven, en de waarde een object is met:
+- "price" (number, reguliere prijs in euro's voor de opgegeven hoeveelheid)
+- "image_url" (string met product-afbeelding URL van het dichtstbijzijnde product, of null)
 
 Ga NIET zelf rekenen; geef alleen losse prijzen.`;
 
@@ -301,7 +301,7 @@ Neem ALLEEN producten op die daadwerkelijk kortingen hebben bij ${store} deze we
 Als er geen aanbiedingen zijn geef dan een lege array: []
 
 Elk element in de array heeft deze velden:
-- "product_name" (string: gebruik de productnaam zoals opgegeven of een specifiekere variant, bv. "Kipfilet" → "AH Kipfilet 500g")
+- "product_name" (string: de officiële productnaam zoals vermeld in de supermarkt, inclusief merk en gewicht/volume, bv. "AH Kipfilet 600g", "Jumbo Halfvolle melk 1L")
 - "deal_type" (string: "single" | "bogo" | "multi_buy" | "percentage_off")
 - "min_quantity" (number: 1 bij single/percentage_off, 2+ bij bogo/multi_buy)
 - "bundle_price" (number of null)
