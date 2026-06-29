@@ -33,6 +33,7 @@ export async function GET(req: Request) {
       selected_stores: ['Albert Heijn'],
       min_price_pp: 0,
       max_price_pp: 10,
+      excluded_ingredients: [],
       updated_at: new Date().toISOString(),
     };
     const { data: inserted, error } = await supabase
@@ -59,6 +60,9 @@ export async function PUT(req: Request) {
     selected_stores: Array.isArray(body.selected_stores) ? body.selected_stores : [],
     min_price_pp: Number(body.min_price_pp) || 0,
     max_price_pp: Number(body.max_price_pp) || 0,
+    excluded_ingredients: Array.isArray(body.excluded_ingredients)
+      ? body.excluded_ingredients.map((s: unknown) => String(s).trim()).filter(Boolean)
+      : [],
     updated_at: new Date().toISOString(),
   };
 

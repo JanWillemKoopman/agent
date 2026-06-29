@@ -129,6 +129,15 @@ function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
+function containsExcluded(recipe: FinalRecipe, excluded: string[]): boolean {
+  if (excluded.length === 0) return false;
+  const normalizedExclusions = excluded.map(normalize);
+  return recipe.ingredients.some((ing) => {
+    const n = normalize(ing.name);
+    return normalizedExclusions.some((ex) => n.includes(ex) || ex.includes(n));
+  });
+}
+
 /**
  * Rekent alle recepten door, filtert op het prijs-per-persoon bereik uit de
  * gebruikersinstellingen en sorteert oplopend op prijs p.p.
@@ -138,7 +147,8 @@ export function calculateRecipes(
   deals: Deal[],
   prices: PriceMap,
   minPricePp: number,
-  maxPricePp: number
+  maxPricePp: number,
+  excludedIngredients: string[] = []
 ): FinalRecipe[] {
   return concepts
     .map((c) => priceRecipe(c, deals, prices))
@@ -146,7 +156,8 @@ export function calculateRecipes(
       (r) =>
         r.price_per_person >= minPricePp &&
         r.price_per_person <= maxPricePp &&
-        r.total_price > 0
+        r.total_price > 0 &&
+        !containsExcluded(r, excludedIngredients)
     )
     .sort((a, b) => a.price_per_person - b.price_per_person);
 }

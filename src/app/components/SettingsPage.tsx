@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { SUPPORTED_STORES } from '@/lib/types';
 import { fetchSettings, saveSettings } from '@/lib/api';
 
@@ -8,10 +8,13 @@ export function SettingsPage() {
   const [stores, setStores] = useState<string[]>(['Albert Heijn']);
   const [minPrice, setMinPrice] = useState(0);
   const [maxPrice, setMaxPrice] = useState(10);
+  const [excludedIngredients, setExcludedIngredients] = useState<string[]>([]);
+  const [ingredientInput, setIngredientInput] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedOk, setSavedOk] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -21,6 +24,7 @@ export function SettingsPage() {
         setStores(s.selected_stores?.length ? s.selected_stores : ['Albert Heijn']);
         setMinPrice(s.min_price_pp ?? 0);
         setMaxPrice(s.max_price_pp ?? 10);
+        setExcludedIngredients(s.excluded_ingredients ?? []);
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
@@ -33,6 +37,25 @@ export function SettingsPage() {
     );
   };
 
+  const addIngredient = () => {
+    const value = ingredientInput.trim();
+    if (!value) return;
+    const lower = value.toLowerCase();
+    if (excludedIngredients.some((i) => i.toLowerCase() === lower)) {
+      setIngredientInput('');
+      return;
+    }
+    setSavedOk(false);
+    setExcludedIngredients((prev) => [...prev, value]);
+    setIngredientInput('');
+    inputRef.current?.focus();
+  };
+
+  const removeIngredient = (ingredient: string) => {
+    setSavedOk(false);
+    setExcludedIngredients((prev) => prev.filter((i) => i !== ingredient));
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setError(null);
@@ -42,6 +65,7 @@ export function SettingsPage() {
         selected_stores: stores,
         min_price_pp: minPrice,
         max_price_pp: maxPrice,
+        excluded_ingredients: excludedIngredients,
       });
       setSavedOk(true);
     } catch (e) {
@@ -90,40 +114,102 @@ export function SettingsPage() {
       </section>
 
       <section className="space-y-3 rounded-card bg-surface p-4 shadow-card">
-        <h2 className="text-sm font-semibold text-ink">Prijs per persoon (€)</h2>
+        <h2 className="text-sm font-semibold text-ink">Prijs per persoon</h2>
         <p className="text-xs text-muted">
           We tonen alleen recepten binnen dit budget per persoon.
         </p>
         <div className="flex items-center gap-3">
           <label className="flex-1 text-sm">
             <span className="mb-1 block text-muted">Minimaal</span>
-            <input
-              type="number"
-              min={0}
-              step={0.5}
-              value={minPrice}
-              onChange={(e) => {
-                setSavedOk(false);
-                setMinPrice(Number(e.target.value));
-              }}
-              className="w-full rounded-card border border-line px-3 py-2.5 text-sm outline-none focus:border-ahBlue"
-            />
+            <div className="relative">
+              <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted">
+                €
+              </span>
+              <input
+                type="number"
+                min={0}
+                step={0.5}
+                value={minPrice}
+                onChange={(e) => {
+                  setSavedOk(false);
+                  setMinPrice(Number(e.target.value));
+                }}
+                className="w-full rounded-card border border-line py-2.5 pl-7 pr-3 text-sm outline-none focus:border-ahBlue"
+              />
+            </div>
           </label>
           <label className="flex-1 text-sm">
             <span className="mb-1 block text-muted">Maximaal</span>
-            <input
-              type="number"
-              min={0}
-              step={0.5}
-              value={maxPrice}
-              onChange={(e) => {
-                setSavedOk(false);
-                setMaxPrice(Number(e.target.value));
-              }}
-              className="w-full rounded-card border border-line px-3 py-2.5 text-sm outline-none focus:border-ahBlue"
-            />
+            <div className="relative">
+              <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted">
+                €
+              </span>
+              <input
+                type="number"
+                min={0}
+                step={0.5}
+                value={maxPrice}
+                onChange={(e) => {
+                  setSavedOk(false);
+                  setMaxPrice(Number(e.target.value));
+                }}
+                className="w-full rounded-card border border-line py-2.5 pl-7 pr-3 text-sm outline-none focus:border-ahBlue"
+              />
+            </div>
           </label>
         </div>
+      </section>
+
+      <section className="space-y-3 rounded-card bg-surface p-4 shadow-card">
+        <h2 className="text-sm font-semibold text-ink">Lust ik niet</h2>
+        <p className="text-xs text-muted">
+          Recepten met deze ingrediënten worden niet voorgesteld.
+        </p>
+
+        <div className="flex gap-2">
+          <input
+            ref={inputRef}
+            type="text"
+            value={ingredientInput}
+            onChange={(e) => setIngredientInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                addIngredient();
+              }
+            }}
+            placeholder="Bijv. champignons"
+            className="min-w-0 flex-1 rounded-card border border-line px-3 py-2.5 text-sm outline-none focus:border-ahBlue"
+          />
+          <button
+            type="button"
+            onClick={addIngredient}
+            className="rounded-card bg-ahBlue px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-ahBlueDark"
+          >
+            Toevoegen
+          </button>
+        </div>
+
+        {excludedIngredients.length > 0 && (
+          <ul className="flex flex-wrap gap-2 pt-1">
+            {excludedIngredients.map((ingredient) => (
+              <li
+                key={ingredient}
+                className="flex items-center gap-1.5 rounded-pill border border-line bg-white px-3 py-1 text-sm text-ink"
+              >
+                {ingredient}
+                <button
+                  type="button"
+                  onClick={() => removeIngredient(ingredient)}
+                  aria-label={`Verwijder ${ingredient}`}
+                  className="ml-0.5 text-muted transition-colors hover:text-red-500"
+                >
+                  <i className="ph ph-x" aria-hidden="true" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       {error && <p className="px-1 text-sm text-red-600">{error}</p>}

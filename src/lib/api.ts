@@ -15,7 +15,7 @@ export async function fetchSettings(): Promise<UserSettings> {
 }
 
 export async function saveSettings(
-  settings: Pick<UserSettings, 'selected_stores' | 'min_price_pp' | 'max_price_pp'>
+  settings: Pick<UserSettings, 'selected_stores' | 'min_price_pp' | 'max_price_pp' | 'excluded_ingredients'>
 ): Promise<UserSettings> {
   const res = await fetch('/api/settings', {
     method: 'PUT',

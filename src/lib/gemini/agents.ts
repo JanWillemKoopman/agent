@@ -162,7 +162,8 @@ export const CHEF_PERSONAS: ChefPersona[] = [
 
 export async function chefRecipes(
   persona: ChefPersona,
-  deals: Deal[]
+  deals: Deal[],
+  excludedIngredients: string[] = []
 ): Promise<RecipeConcept[]> {
   // Stuur deals als compacte JSON inclusief deal_description zodat chefs
   // weten hoeveel eenheden minimaal nodig zijn voor de deal.
@@ -175,10 +176,15 @@ export async function chefRecipes(
     min_quantity: d.min_quantity ?? 1,
   }));
 
+  const exclusionNote =
+    excludedIngredients.length > 0
+      ? `\n\nBELANGRIJK: gebruik NOOIT de volgende ingrediënten — verwerk ze niet in recepten, ook niet als bijgerecht of optionele toevoeging:\n${excludedIngredients.map((i) => `- ${i}`).join('\n')}\n`
+      : '';
+
   const prompt = `Hier is de complete lijst met huidige supermarktaanbiedingen (JSON):
 ${JSON.stringify(dealSummary)}
 
-Let op: bij aanbiedingen met min_quantity > 1 (bv. "2e gratis") moeten recepten minimaal dat aantal eenheden van dat product gebruiken om de deal te benutten.
+Let op: bij aanbiedingen met min_quantity > 1 (bv. "2e gratis") moeten recepten minimaal dat aantal eenheden van dat product gebruiken om de deal te benutten.${exclusionNote}
 
 Bedenk de recepten volgens jouw specialisatie. Geef voor elk recept terug:
 - "recipe_name"
