@@ -104,7 +104,7 @@ function AppShell() {
   };
 
   return (
-    <div className="min-h-screen bg-appBg">
+    <div className="flex flex-col bg-appBg overflow-hidden" style={{ height: '100dvh' }}>
       {/* iOS install-flow: modal (eerste bezoek) → banner (fallback) */}
       {showModal && <InstallModal onDone={dismissModal} onLater={dismissModal} />}
       {showBanner && !showModal && (
@@ -128,7 +128,7 @@ function AppShell() {
         onSettingsClick={() => setTab('instellingen')}
       />
 
-      <main className="mx-auto max-w-2xl p-4 pb-28">
+      <main className="flex-1 overflow-y-auto mx-auto max-w-2xl p-4 pb-28">
         {tab === 'recepten' && (
           <RecipeTab
             isGenerating={isGenerating}
