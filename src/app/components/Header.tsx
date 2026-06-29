@@ -13,6 +13,7 @@ export function Header({ onNavigateAccount }: HeaderProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
   const initial = user?.email?.charAt(0).toUpperCase() ?? '?';
+  const avatarUrl = (user?.user_metadata?.avatar_url as string | null) ?? null;
 
   useEffect(() => {
     if (!open) return;
@@ -41,9 +42,13 @@ export function Header({ onNavigateAccount }: HeaderProps) {
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-label="Account menu"
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-ahBlueSoft text-ahBlue text-sm font-bold transition-colors hover:bg-ahBlue hover:text-white"
+          className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-ahBlueSoft text-ahBlue text-sm font-bold transition-colors hover:ring-2 hover:ring-ahBlue"
         >
-          {initial}
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="Profielfoto" className="h-full w-full object-cover" />
+          ) : (
+            initial
+          )}
         </button>
 
         {open && (

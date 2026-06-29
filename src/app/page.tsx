@@ -12,6 +12,7 @@ import { UpdateBanner } from './components/UpdateBanner';
 import { useGenerateRecipes } from './hooks/useGenerateRecipes';
 import { useServiceWorkerUpdate } from './hooks/useServiceWorkerUpdate';
 import { useAuth } from './auth-context';
+import { PhotoOnboarding } from './components/PhotoOnboarding';
 import {
   fetchSavedRecipes,
   saveRecipe,
@@ -42,9 +43,18 @@ export default function Home() {
 }
 
 function AppShell() {
+  const { user } = useAuth();
   const [tab, setTab] = useState<TabKey>('recepten');
   const [saved, setSaved] = useState<SavedRecipe[]>([]);
   const [detail, setDetail] = useState<FinalRecipe | null>(null);
+
+  // Toon foto-onboarding voor gebruikers die net geregistreerd zijn (< 5 min) en nog geen avatar hebben.
+  const [showOnboarding] = useState(() => {
+    if (!user) return false;
+    const ageMs = Date.now() - new Date(user.created_at).getTime();
+    return ageMs < 5 * 60 * 1000 && !user.user_metadata?.avatar_url;
+  });
+  const [onboardingDone, setOnboardingDone] = useState(false);
 
   const { statusLines, recipes, isGenerating, error, generate } =
     useGenerateRecipes();
@@ -83,6 +93,10 @@ function AppShell() {
 
   return (
     <div className="min-h-screen bg-appBg">
+      {showOnboarding && !onboardingDone && (
+        <PhotoOnboarding onDone={() => setOnboardingDone(true)} />
+      )}
+
       <Header onNavigateAccount={() => setTab('account')} />
 
       <main className="mx-auto max-w-2xl p-4 pb-28">
