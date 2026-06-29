@@ -29,7 +29,11 @@ export async function runKitchenBrigade(
   emit: Emit
 ): Promise<FinalRecipe[]> {
   // --- Stap 1: The Foragers -------------------------------------------------
-  emit(1, 'Aanbiedingen zoeken');
+  const storeList =
+    stores.length > 1
+      ? stores.slice(0, -1).join(', ') + ' en ' + stores[stores.length - 1]
+      : stores[0];
+  emit(1, `Aanbiedingen zoeken bij ${storeList}…`);
   const forageResults = await Promise.allSettled(stores.map((s) => forageDeals(s)));
   const deals: Deal[] = forageResults.flatMap((r) => {
     if (r.status === 'fulfilled') return r.value;
@@ -42,7 +46,7 @@ export async function runKitchenBrigade(
   }
 
   // --- Stap 2: The Chefs ----------------------------------------------------
-  emit(2, 'Recepten bedenken');
+  emit(2, `Recepten bedenken met ${deals.length} actuele deals…`);
   const chefResults = await Promise.allSettled(
     CHEF_PERSONAS.map((p) => chefRecipes(p, deals))
   );
@@ -57,7 +61,7 @@ export async function runKitchenBrigade(
   }
 
   // --- Stap 3: The Critic ---------------------------------------------------
-  emit(3, 'Smaak en kwaliteit controleren');
+  emit(3, `Kwaliteit controleren van ${concepts.length} receptideeën…`);
   let bestConcepts: RecipeConcept[];
   try {
     bestConcepts = await criticFilter(concepts);
@@ -68,7 +72,13 @@ export async function runKitchenBrigade(
   }
 
   // --- Stap 4: The Shoppers — chunk 1 recept per call, max MAX_SHOPPER_CALLS ------
-  emit(4, 'Ontbrekende prijzen ophalen');
+  const uniqueIngredients = new Set(
+    bestConcepts.flatMap((c) => c.required_standard_ingredients ?? [])
+  );
+  emit(
+    4,
+    `Prijzen ophalen voor ${uniqueIngredients.size} ingrediënten (${bestConcepts.length} recepten)…`
+  );
   const shopChunks = chunk(bestConcepts, 1).slice(0, MAX_SHOPPER_CALLS);
   const shopResults = await Promise.allSettled(
     shopChunks.map((c) => shopPrices(c, stores))
@@ -83,6 +93,10 @@ export async function runKitchenBrigade(
   }
 
   // --- Stap 5: The Calculator (deterministisch) -----------------------------
-  emit(5, 'Budget controleren');
+  const budgetLabel =
+    minPricePp === 0 && maxPricePp >= 100
+      ? 'alle budgetten'
+      : `€ ${minPricePp.toFixed(0)}–${maxPricePp.toFixed(0)} p.p.`;
+  emit(5, `Recepten doorrekenen en filteren op ${budgetLabel}…`);
   return calculateRecipes(bestConcepts, deals, prices, minPricePp, maxPricePp);
 }

@@ -17,6 +17,11 @@ interface RecipeTabProps {
   onOpen: (recipe: FinalRecipe) => void;
 }
 
+interface ErrorBoxProps {
+  message: string;
+  onRetry?: () => void;
+}
+
 const Intro = () => (
   <div className="space-y-3 text-center">
     <h1 className="text-2xl font-extrabold leading-tight text-navy">
@@ -56,7 +61,7 @@ export function RecipeTab({
         <div className="w-full max-w-sm">
           <GenerateButton onClick={onGenerate} isGenerating={isGenerating} />
         </div>
-        {error && <ErrorBox message={error} />}
+        {error && <ErrorBox message={error} onRetry={onGenerate} />}
       </div>
     );
   }
@@ -67,7 +72,7 @@ export function RecipeTab({
 
       <StatusStream lines={statusLines} isGenerating={isGenerating} />
 
-      {error && <ErrorBox message={error} />}
+      {error && <ErrorBox message={error} onRetry={!isGenerating ? onGenerate : undefined} />}
 
       <RecipeGrid
         recipes={recipes}
@@ -90,11 +95,23 @@ export function RecipeTab({
   );
 }
 
-function ErrorBox({ message }: { message: string }) {
+function ErrorBox({ message, onRetry }: ErrorBoxProps) {
   return (
-    <div className="flex items-start gap-2 rounded-card border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-      <i className="ph-fill ph-warning-circle mt-0.5 text-base" aria-hidden="true" />
-      <span>{message}</span>
+    <div className="rounded-card border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+      <div className="flex items-start gap-2">
+        <i className="ph-fill ph-warning-circle mt-0.5 shrink-0 text-base" aria-hidden="true" />
+        <span className="leading-snug">{message}</span>
+      </div>
+      {onRetry && (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="mt-3 flex items-center gap-1.5 rounded-pill bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-200 transition-colors"
+        >
+          <i className="ph ph-arrow-clockwise text-sm" aria-hidden="true" />
+          Probeer opnieuw
+        </button>
+      )}
     </div>
   );
 }
