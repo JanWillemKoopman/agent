@@ -20,6 +20,7 @@ dist
 *.swp
 *.swo
 *~
+*.tsbuildinfo
 
 # IDE
 .vscode
