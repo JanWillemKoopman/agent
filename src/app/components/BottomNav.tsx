@@ -23,12 +23,6 @@ const ITEMS: NavItem[] = [
     icon: 'ph ph-bell',
     activeIcon: 'ph-fill ph-bell',
   },
-  {
-    key: 'account',
-    label: 'Account',
-    icon: 'ph ph-user-circle',
-    activeIcon: 'ph-fill ph-user-circle',
-  },
 ];
 
 interface BottomNavProps {
