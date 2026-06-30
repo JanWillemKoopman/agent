@@ -42,43 +42,18 @@ function normalize(s: string): string {
     .trim();
 }
 
-function areSimilar(a: string, b: string): boolean {
-  const na = normalize(a);
-  const nb = normalize(b);
-  if (na === nb) return true;
-  const shorter = na.length < nb.length ? na : nb;
-  const longer = na.length < nb.length ? nb : na;
-  if (longer.includes(shorter) && shorter.length > 6) return true;
-  const wordsA = new Set(na.split(' ').filter((w) => w.length > 3));
-  const wordsB = new Set(nb.split(' ').filter((w) => w.length > 3));
-  if (wordsA.size === 0 || wordsB.size === 0) return false;
-  const intersection = [...wordsA].filter((w) => wordsB.has(w));
-  const union = new Set([...wordsA, ...wordsB]);
-  return intersection.length / union.size > 0.65;
-}
-
+// Exact-match deduplicatie per winkel (gekopieerd uit forager.ts).
 function deduplicateDeals(deals: Deal[]): Deal[] {
+  const seen = new Set<string>();
   const unique: Deal[] = [];
   for (const deal of deals) {
-    const isDuplicate = unique.some((existing) =>
-      areSimilar(existing.product_name, deal.product_name)
-    );
-    if (!isDuplicate) unique.push(deal);
+    const key = `${deal.supermarket}||${normalize(deal.product_name)}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      unique.push(deal);
+    }
   }
   return unique;
-}
-
-function qualityFilter(deals: Deal[]): Deal[] {
-  return deals.filter((d) => {
-    if (!d.product_name || d.product_name.trim().length < 3) return false;
-    if (typeof d.deal_price !== 'number' || d.deal_price < 0) return false;
-    if (!['single', 'bogo', 'multi_buy', 'percentage_off'].includes(d.deal_type)) return false;
-    const qty = Number(d.min_quantity);
-    if (!Number.isInteger(qty) || qty < 1) return false;
-    if ((d.deal_type === 'bogo' || d.deal_type === 'multi_buy') && qty < 2) return false;
-    if (d.bundle_price !== null && d.bundle_price !== undefined && d.bundle_price <= 0) return false;
-    return true;
-  });
 }
 
 // ---------------------------------------------------------------------------
@@ -100,66 +75,54 @@ function makeDeal(overrides: Partial<Deal> = {}): Deal {
 }
 
 // ---------------------------------------------------------------------------
-// areSimilar
-// ---------------------------------------------------------------------------
-
-describe('areSimilar', () => {
-  it('herkent exacte duplicaten', () => {
-    expect(areSimilar('AH Kipfilet 600g', 'AH Kipfilet 600g')).toBe(true);
-  });
-
-  it('herkent variant met extra gewicht-info', () => {
-    expect(areSimilar('AH Kipfilet', 'AH Kipfilet 600g')).toBe(true);
-  });
-
-  it('is hoofdletter-onafhankelijk', () => {
-    expect(areSimilar('ah kipfilet 600g', 'AH KIPFILET 600G')).toBe(true);
-  });
-
-  it('herkent dezelfde productnaam met punten', () => {
-    expect(areSimilar('Jumbo Halfvolle melk 1L', 'Jumbo Halfvolle Melk. 1L')).toBe(true);
-  });
-
-  it('beschouwt totaal verschillende producten als niet-gelijk', () => {
-    expect(areSimilar('AH Kipfilet 600g', 'Jumbo Zalm 2 stuks')).toBe(false);
-  });
-
-  it('beschouwt identieke strings altijd als gelijk, ook korte', () => {
-    expect(areSimilar('ah', 'ah')).toBe(true);
-  });
-
-  it('herkent producten met dezelfde kern maar minor verschil in merk-afkorting niet als zelfde wanneer Jaccard te laag is', () => {
-    // "Lidl zalm filet 300g" vs "Jumbo zalmfilet 400g" — hoge overlap maar andere winkel/gewicht
-    // Jaccard: {'zalmfilet'} ∩ {'zalm','filet','300g'} = 0 → false
-    expect(areSimilar('Lidl zalm filet 300g', 'Jumbo zalmfilet 400g')).toBe(false);
-  });
-});
-
-// ---------------------------------------------------------------------------
 // deduplicateDeals
 // ---------------------------------------------------------------------------
 
 describe('deduplicateDeals', () => {
-  it('verwijdert exacte duplicaten', () => {
+  it('verwijdert exacte duplicaten (zelfde naam + zelfde winkel)', () => {
     const deals = [makeDeal(), makeDeal()];
     expect(deduplicateDeals(deals)).toHaveLength(1);
   });
 
-  it('behoudt unieke producten', () => {
+  it('behoudt producten met dezelfde naam bij verschillende winkels', () => {
     const deals = [
-      makeDeal({ product_name: 'AH Kipfilet 600g' }),
-      makeDeal({ product_name: 'Jumbo Verse zalm 300g' }),
-      makeDeal({ product_name: 'Plus Biologische spinazie 200g' }),
+      makeDeal({ product_name: 'Kipfilet 600g', supermarket: 'Albert Heijn' }),
+      makeDeal({ product_name: 'Kipfilet 600g', supermarket: 'Jumbo' }),
     ];
-    expect(deduplicateDeals(deals)).toHaveLength(3);
+    expect(deduplicateDeals(deals)).toHaveLength(2);
   });
 
-  it('verwijdert fuzzy duplicaten (variant zonder gewicht)', () => {
+  it('behoudt varianten met verschillende gewichten als aparte producten', () => {
     const deals = [
       makeDeal({ product_name: 'AH Kipfilet 600g' }),
-      makeDeal({ product_name: 'AH Kipfilet' }),
+      makeDeal({ product_name: 'AH Kipfilet 500g' }),
+    ];
+    expect(deduplicateDeals(deals)).toHaveLength(2);
+  });
+
+  it('beschouwt hoofdletterverschillen als hetzelfde product', () => {
+    const deals = [
+      makeDeal({ product_name: 'AH Kipfilet 600g' }),
+      makeDeal({ product_name: 'ah kipfilet 600g' }),
     ];
     expect(deduplicateDeals(deals)).toHaveLength(1);
+  });
+
+  it('beschouwt puntjes en koppeltekens als witruimte (normalisatie)', () => {
+    const deals = [
+      makeDeal({ product_name: 'Jumbo Halfvolle melk 1L' }),
+      makeDeal({ product_name: 'Jumbo Halfvolle Melk. 1L' }),
+    ];
+    expect(deduplicateDeals(deals)).toHaveLength(1);
+  });
+
+  it('behoudt unieke producten bij dezelfde winkel', () => {
+    const deals = [
+      makeDeal({ product_name: 'AH Kipfilet 600g' }),
+      makeDeal({ product_name: 'AH Rundergehakt 500g' }),
+      makeDeal({ product_name: 'AH Verse Zalm 2 stuks' }),
+    ];
+    expect(deduplicateDeals(deals)).toHaveLength(3);
   });
 
   it('behoudt het eerste exemplaar bij duplicaten', () => {
@@ -173,33 +136,24 @@ describe('deduplicateDeals', () => {
   it('verwerkt lege array zonder fout', () => {
     expect(deduplicateDeals([])).toEqual([]);
   });
-
-  it('verwijdert geen producten die echt uniek zijn (verschillende categorieën)', () => {
-    // Producten uit totaal verschillende categorieën binnen één winkel.
-    // De fuzzy matcher mag ze NIET samenvoegen.
-    const uniqueProducts = [
-      'AH Kipfilet 600g',
-      'AH Rundergehakt 500g',
-      'AH Verse Zalm 2 stuks',
-      'AH Halfvolle melk 1L',
-      'AH Gouda Jong 500g',
-      'AH Volkoren brood 800g',
-      'AH Diepvries spinazie 450g',
-      'AH Spaghetti 500g',
-      'AH Pastasaus bolognese 690g',
-      'AH Cola 6×1.5L',
-      'AH Chips naturel 200g',
-      'AH Cornflakes 375g',
-    ];
-    const deals = uniqueProducts.map((name) => makeDeal({ product_name: name }));
-    const result = deduplicateDeals(deals);
-    expect(result.length).toBe(uniqueProducts.length);
-  });
 });
 
 // ---------------------------------------------------------------------------
 // qualityFilter
 // ---------------------------------------------------------------------------
+
+function qualityFilter(deals: Deal[]): Deal[] {
+  return deals.filter((d) => {
+    if (!d.product_name || d.product_name.trim().length < 3) return false;
+    if (typeof d.deal_price !== 'number' || d.deal_price < 0) return false;
+    if (!['single', 'bogo', 'multi_buy', 'percentage_off'].includes(d.deal_type)) return false;
+    const qty = Number(d.min_quantity);
+    if (!Number.isInteger(qty) || qty < 1) return false;
+    if ((d.deal_type === 'bogo' || d.deal_type === 'multi_buy') && qty < 2) return false;
+    if (d.bundle_price !== null && d.bundle_price !== undefined && d.bundle_price <= 0) return false;
+    return true;
+  });
+}
 
 describe('qualityFilter', () => {
   it('laat geldige deals door', () => {
