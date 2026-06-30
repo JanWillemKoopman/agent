@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { SUPPORTED_STORES } from '@/lib/types';
 import { fetchSettings, saveSettings } from '@/lib/api';
-import { ThemeSwitcher } from './ThemeSwitcher';
 
 export function SettingsPage() {
   const [stores, setStores] = useState<string[]>(['Albert Heijn']);
@@ -229,9 +228,6 @@ export function SettingsPage() {
       >
         {saving ? 'Opslaan…' : 'Instellingen opslaan'}
       </button>
-
-      {/* Template/thema-kiezer — onderaan de instellingen. */}
-      <ThemeSwitcher />
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '../auth-context';
 import { AvatarUpload } from './AvatarUpload';
+import { ThemeSwitcher } from './ThemeSwitcher';
 import { uploadAvatar, saveAvatarUrl } from '@/lib/supabase/storage';
 
 export function AccountPage() {
@@ -101,6 +102,9 @@ export function AccountPage() {
           </p>
         </div>
       </section>
+
+      {/* Template/thema-kiezer — onderdeel van de accountinstellingen. */}
+      <ThemeSwitcher />
 
       {/* Uitloggen */}
       <button
