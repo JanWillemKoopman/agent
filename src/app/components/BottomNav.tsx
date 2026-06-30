@@ -1,6 +1,6 @@
 'use client';
 
-export type TabKey = 'recepten' | 'tracker' | 'instellingen' | 'account';
+export type TabKey = 'home' | 'recepten' | 'tracker' | 'instellingen' | 'account';
 
 interface NavItem {
   key: TabKey;
@@ -9,8 +9,13 @@ interface NavItem {
   activeIcon: string;
 }
 
-// Eén plek om tabs te definiëren — eenvoudig uit te breiden met nieuwe pagina's.
 const ITEMS: NavItem[] = [
+  {
+    key: 'home',
+    label: 'Home',
+    icon: 'ph ph-house',
+    activeIcon: 'ph-fill ph-house',
+  },
   {
     key: 'recepten',
     label: 'Recepten',

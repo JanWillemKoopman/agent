@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Header } from './components/Header';
 import { BottomNav, type TabKey } from './components/BottomNav';
+import { HomeTab } from './components/HomeTab';
 import { RecipeTab } from './components/RecipeTab';
 import { TrackerTab } from './components/TrackerTab';
 import { SettingsPage } from './components/SettingsPage';
@@ -50,7 +51,7 @@ export default function Home() {
 
 function AppShell() {
   const { user } = useAuth();
-  const [tab, setTab] = useState<TabKey>('recepten');
+  const [tab, setTab] = useState<TabKey>('home');
   const [saved, setSaved] = useState<SavedRecipe[]>([]);
   const [detail, setDetail] = useState<FinalRecipe | null>(null);
 
@@ -130,6 +131,7 @@ function AppShell() {
 
       <main className="flex-1 overflow-y-auto w-full">
         <div className="mx-auto max-w-2xl p-4 pb-28">
+          {tab === 'home' && <HomeTab onNavigate={setTab} />}
           {tab === 'recepten' && (
             <RecipeTab
               isGenerating={isGenerating}
