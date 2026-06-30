@@ -9,7 +9,8 @@ import { sseComment, sseEvent } from '@/lib/sse';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { UserSettings } from '@/lib/types';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
+export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
 
 type Emit = (event: string, data: unknown) => void;
