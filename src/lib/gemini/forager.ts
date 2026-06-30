@@ -13,7 +13,7 @@
  *   Fase 6 — Gap-analyse: Gemini zoekt wat we nog missen
  */
 
-import { generateGroundedJson, GEMINI_CHEF } from './client';
+import { generateGroundedJson, GEMINI_FORAGER } from './client';
 import type { Deal } from '../types';
 
 // ---------------------------------------------------------------------------
@@ -223,6 +223,25 @@ function buildUrlHint(store: string): string {
   }
   return `Zoek via Google Search naar de huidige aanbiedingspagina van ${store} Nederland en haal daar de aanbiedingen vandaan.`;
 }
+
+// ---------------------------------------------------------------------------
+// System instruction — anker voor alle grounded zoek-calls
+// ---------------------------------------------------------------------------
+
+// Eén gedeelde system instruction voor élke grounded call. Verankert het gedrag
+// op API-niveau i.p.v. het in elke prompt te herhalen: alleen échte, actuele
+// aanbiedingen uit de zoekresultaten, geen verzinsels, en strikt de gevraagde
+// JSON. NB: dit is GEEN HTML→JSON-conversie (de app stuurt geen HTML; Gemini
+// zoekt zelf via Google Search) — de instructie is daarop afgestemd.
+const SCRAPER_SYSTEM_INSTRUCTION = `Je bent een nauwkeurige data-extractor voor Nederlandse supermarkt-weekaanbiedingen. Je gebruikt UITSLUITEND de actuele Google Search-resultaten als bron.
+
+Harde regels:
+- Verzin NOOIT producten, prijzen of kortingen. Geef alleen aanbiedingen terug die daadwerkelijk in de zoekresultaten staan en deze week geldig zijn.
+- Neem prijzen exact over zoals vermeld. De stukprijs (deal_price) mag je afleiden uit de bundelprijs en het aantal, maar verzin nooit een ontbrekend bedrag.
+- Is de reguliere prijs (original_price) niet te vinden? Geef dan null — schat of gok nooit.
+- Negeer navigatie, advertenties, tracking, cookiemeldingen en producten zonder echte korting. Focus uitsluitend op concrete productaanbiedingen.
+- Behoud de exacte productnaam inclusief merk en gewicht/volume.
+- Antwoord ALLEEN met de gevraagde JSON-array. Geen uitleg, geen markdown.`;
 
 // ---------------------------------------------------------------------------
 // JSON-schema instructies (gedeeld door alle strategieprompts)
@@ -550,7 +569,11 @@ async function runStrategy(
 ): Promise<Deal[]> {
   const prompt = strategy.buildPrompt(store, urlHint, excludeNames);
   try {
-    const raw = await generateGroundedJson<Deal[]>({ prompt, model: GEMINI_CHEF });
+    const raw = await generateGroundedJson<Deal[]>({
+      prompt,
+      model: GEMINI_FORAGER,
+      systemInstruction: SCRAPER_SYSTEM_INSTRUCTION,
+    });
     const batch = Array.isArray(raw) ? raw : [];
     return batch.map((d) => ({ ...d, supermarket: d.supermarket || store }));
   } catch (err) {
@@ -687,7 +710,11 @@ Lever ALLEEN producten op die écht in de aanbieding zijn én nog niet in de lij
 ${jsonSchema(store)}`.trim();
 
   try {
-    const raw = await generateGroundedJson<Deal[]>({ prompt, model: GEMINI_CHEF });
+    const raw = await generateGroundedJson<Deal[]>({
+      prompt,
+      model: GEMINI_FORAGER,
+      systemInstruction: SCRAPER_SYSTEM_INSTRUCTION,
+    });
     const batch = Array.isArray(raw) ? raw : [];
     return batch.map((d) => ({ ...d, supermarket: d.supermarket || store }));
   } catch (err) {
