@@ -49,18 +49,19 @@ async function claimRun(
   return !!retried?.length;
 }
 
-/** Scrapet één winkel en stuurt SSE-voortgangsevents naar de client. */
+/** Scrapet één winkel en stuurt SSE-voortgangsevents naar de client.
+ *  Geeft het aantal gevonden producten terug (0 bij skip/fout). */
 async function scrapeStore(
   service: SupabaseClient,
   store: string,
   day: string,
   force: boolean,
   emit: Emit
-): Promise<void> {
+): Promise<number> {
   const claimed = await claimRun(service, store, day, force);
   if (!claimed) {
     emit('store-skip', { store });
-    return;
+    return 0;
   }
 
   emit('store-start', { store });
@@ -103,6 +104,7 @@ async function scrapeStore(
       .eq('deal_date', day);
 
     emit('store-done', { store, productsFound: deals.length, confidenceScore: coverage.confidenceScore });
+    return deals.length;
   } catch (err) {
     console.error(`Scrape ${store} faalde:`, err);
     await service
@@ -111,6 +113,7 @@ async function scrapeStore(
       .eq('store', store)
       .eq('deal_date', day);
     emit('store-error', { store, error: err instanceof Error ? err.message : 'Onbekende fout' });
+    return 0;
   }
 }
 
@@ -160,10 +163,26 @@ export async function POST(req: Request) {
 
       try {
         emit('started', { stores });
-        await Promise.allSettled(
+        const results = await Promise.allSettled(
           stores.map((store) => scrapeStore(service, store, day, force, emit))
         );
+        const totalProducts = results.reduce(
+          (sum, r) => sum + (r.status === 'fulfilled' ? r.value : 0),
+          0
+        );
         emit('done', { ok: true });
+
+        // Push notificatie (fire-and-forget)
+        const origin = new URL(req.url).origin;
+        void fetch(`${origin}/api/push/send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+          body: JSON.stringify({
+            title: 'Aanbiedingen opgehaald!',
+            body: `${totalProducts} producten gevonden bij ${stores.length} ${stores.length === 1 ? 'winkel' : 'winkels'}. Open de app voor je recepten.`,
+            tag: 'deals-refresh',
+          }),
+        }).catch((err) => console.error('[Push] Notificatie verzenden mislukt:', err));
       } catch (err) {
         console.error('Deals-refresh faalde:', err);
         emit('error', { message: 'Refresh mislukt.' });
