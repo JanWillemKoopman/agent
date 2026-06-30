@@ -56,11 +56,9 @@ export function RecipeTab({
   // Lege staat: knop + intro horizontaal én verticaal gecentreerd.
   if (isEmpty) {
     return (
-      <div className="flex min-h-[calc(100vh-8.5rem)] flex-col items-center justify-center gap-6 px-2">
+      <div className="flex min-h-[calc(100dvh-8.5rem)] flex-col items-center justify-center gap-6">
         <Intro />
-        <div className="w-full max-w-sm">
-          <GenerateButton onClick={onGenerate} isGenerating={isGenerating} />
-        </div>
+        <GenerateButton onClick={onGenerate} isGenerating={isGenerating} />
         {error && <ErrorBox message={error} onRetry={onGenerate} />}
       </div>
     );

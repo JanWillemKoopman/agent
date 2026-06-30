@@ -128,23 +128,25 @@ function AppShell() {
         onSettingsClick={() => setTab('instellingen')}
       />
 
-      <main className="flex-1 overflow-y-auto mx-auto max-w-2xl p-4 pb-28">
-        {tab === 'recepten' && (
-          <RecipeTab
-            isGenerating={isGenerating}
-            statusLines={statusLines}
-            recipes={recipes}
-            error={error}
-            onGenerate={generate}
-            savedRecipes={savedRecipeObjects}
-            savedTitles={savedTitles}
-            onToggleSave={handleToggleSave}
-            onOpen={setDetail}
-          />
-        )}
-        {tab === 'tracker' && <TrackerTab />}
-        {tab === 'instellingen' && <SettingsPage />}
-        {tab === 'account' && <AccountPage />}
+      <main className="flex-1 overflow-y-auto w-full">
+        <div className="mx-auto max-w-2xl p-4 pb-28">
+          {tab === 'recepten' && (
+            <RecipeTab
+              isGenerating={isGenerating}
+              statusLines={statusLines}
+              recipes={recipes}
+              error={error}
+              onGenerate={generate}
+              savedRecipes={savedRecipeObjects}
+              savedTitles={savedTitles}
+              onToggleSave={handleToggleSave}
+              onOpen={setDetail}
+            />
+          )}
+          {tab === 'tracker' && <TrackerTab />}
+          {tab === 'instellingen' && <SettingsPage />}
+          {tab === 'account' && <AccountPage />}
+        </div>
       </main>
 
       <BottomNav active={tab} onChange={setTab} />
