@@ -11,9 +11,11 @@ import { AccountPage } from './components/AccountPage';
 import { RecipeDetail } from './components/RecipeDetail';
 import { AuthScreen } from './components/AuthScreen';
 import { UpdateBanner } from './components/UpdateBanner';
+import { DataRefreshScreen } from './components/DataRefreshScreen';
 import { useGenerateRecipes } from './hooks/useGenerateRecipes';
 import { useServiceWorkerUpdate } from './hooks/useServiceWorkerUpdate';
-import { useDealRefresh } from './hooks/useDealRefresh';
+import { useDealStatus } from './hooks/useDealStatus';
+import { useDealRefreshStream } from './hooks/useDealRefreshStream';
 import { useAuth } from './auth-context';
 import { PhotoOnboarding } from './components/PhotoOnboarding';
 import { InstallModal } from './components/InstallModal';
@@ -54,8 +56,8 @@ function AppShell() {
   const [tab, setTab] = useState<TabKey>('home');
   const [saved, setSaved] = useState<SavedRecipe[]>([]);
   const [detail, setDetail] = useState<FinalRecipe | null>(null);
+  const [showDataRefresh, setShowDataRefresh] = useState(false);
 
-  // Toon foto-onboarding voor gebruikers die net geregistreerd zijn (< 5 min) en nog geen avatar hebben.
   const [showOnboarding] = useState(() => {
     if (!user) return false;
     const ageMs = Date.now() - new Date(user.created_at).getTime();
@@ -66,28 +68,36 @@ function AppShell() {
   const { showModal, showBanner, dismissModal, dismissBanner } = useIOSInstallPrompt();
   const [showAppDownload, setShowAppDownload] = useState(false);
 
-  const { statusLines, recipes, isGenerating, error, generate } =
-    useGenerateRecipes();
+  const { statusLines, recipes, isGenerating, error, generate } = useGenerateRecipes();
   const { updateAvailable, refresh } = useServiceWorkerUpdate();
 
-  // Start bij sessie-start de achtergrond-scrape van aanbiedingen (vult de dagcache).
-  useDealRefresh();
+  // Deal-status (laatste DB-run info + productaantallen).
+  const { status: dealStatus, refetch: refetchDealStatus } = useDealStatus();
 
-  // Laad bewaarde recepten zodra de gebruiker is ingelogd.
+  // Handmatige refresh-stream (SSE per winkel).
+  const {
+    isRunning: isRefreshing,
+    isDone: refreshDone,
+    error: refreshError,
+    storeProgress,
+    trigger: triggerRefresh,
+  } = useDealRefreshStream();
+
+  const handleOpenDataRefresh = () => setShowDataRefresh(true);
+
+  const handleTriggerRefresh = () => {
+    const stores = dealStatus?.stores.map((s) => s.store);
+    void triggerRefresh(stores);
+  };
+
   useEffect(() => {
     fetchSavedRecipes()
       .then(setSaved)
       .catch((e) => console.error('Bewaarde recepten laden mislukt:', e));
   }, []);
 
-  const savedTitles = useMemo(
-    () => new Set(saved.map((s) => s.title)),
-    [saved]
-  );
-  const savedRecipeObjects = useMemo(
-    () => saved.map((s) => s.recipe_json),
-    [saved]
-  );
+  const savedTitles = useMemo(() => new Set(saved.map((s) => s.title)), [saved]);
+  const savedRecipeObjects = useMemo(() => saved.map((s) => s.recipe_json), [saved]);
 
   const handleToggleSave = async (recipe: FinalRecipe) => {
     const existing = saved.find((s) => s.title === recipe.recipe_name);
@@ -106,7 +116,6 @@ function AppShell() {
 
   return (
     <div className="flex flex-col bg-appBg overflow-hidden" style={{ height: '100dvh' }}>
-      {/* iOS install-flow: modal (eerste bezoek) → banner (fallback) */}
       {showModal && <InstallModal onDone={dismissModal} onLater={dismissModal} />}
       {showBanner && !showModal && (
         <InstallBanner
@@ -115,18 +124,32 @@ function AppShell() {
         />
       )}
 
-      {/* App downloaden scherm (via header-dropdown of install-banner) */}
       {showAppDownload && <AppDownloadPage onClose={() => setShowAppDownload(false)} />}
 
-      {/* Foto-onboarding voor nieuwe gebruikers */}
       {showOnboarding && !onboardingDone && (
         <PhotoOnboarding onDone={() => setOnboardingDone(true)} />
+      )}
+
+      {showDataRefresh && (
+        <DataRefreshScreen
+          onClose={() => setShowDataRefresh(false)}
+          isRunning={isRefreshing}
+          isDone={refreshDone}
+          error={refreshError}
+          storeProgress={storeProgress}
+          onTrigger={handleTriggerRefresh}
+          dealStatus={dealStatus}
+          onStatusRefetch={refetchDealStatus}
+        />
       )}
 
       <Header
         onNavigateAccount={() => setTab('account')}
         onAppDownload={() => setShowAppDownload(true)}
         onSettingsClick={() => setTab('instellingen')}
+        onDataRefreshClick={handleOpenDataRefresh}
+        dealStatus={dealStatus}
+        isRefreshing={isRefreshing}
       />
 
       <main className="flex-1 overflow-y-auto w-full">
@@ -143,6 +166,8 @@ function AppShell() {
               savedTitles={savedTitles}
               onToggleSave={handleToggleSave}
               onOpen={setDetail}
+              hasDataToday={dealStatus?.hasDataToday ?? false}
+              onOpenDataRefresh={handleOpenDataRefresh}
             />
           )}
           {tab === 'tracker' && <TrackerTab />}

@@ -96,20 +96,84 @@ export async function deleteTrackedProduct(id: string): Promise<void> {
   if (!res.ok && res.status !== 204) throw new Error('Kon product niet verwijderen.');
 }
 
+export interface StoreStatus {
+  store: string;
+  status: 'running' | 'done' | 'failed';
+  startedAt: string;
+  finishedAt: string | null;
+  productsFound: number;
+  categoriesFound: number | null;
+  confidenceScore: number | null;
+}
+
+export interface DealStatus {
+  date: string;
+  stores: StoreStatus[];
+  hasDataToday: boolean;
+}
+
+export async function fetchDealStatus(): Promise<DealStatus> {
+  const res = await fetch('/api/deals/status', { headers: await authHeaders() });
+  if (!res.ok) throw new Error('Kon deal-status niet laden.');
+  return res.json();
+}
+
 /**
- * Start de achtergrond-scrape van de aanbiedingen voor de winkels van de
- * gebruiker. Wordt bij sessie-start afgevuurd en NIET in de UI afgewacht: de
- * server vult de dagcache terwijl de gebruiker de app gebruikt. Fouten worden
- * stil genegeerd — generate valt sowieso terug op live foraging.
+ * Start een handmatige scrape en leest de SSE-stroom. Roept onEvent aan voor
+ * elk store-event. Geeft een Promise terug die resolved zodra de stroom
+ * gesloten is. Gebruik force=true om ook al-afgeronde runs opnieuw te starten.
  */
-export async function refreshDailyDeals(): Promise<void> {
-  try {
-    await fetch('/api/deals/refresh', {
-      method: 'POST',
-      headers: await authHeaders(),
-    });
-  } catch {
-    // Achtergrondtaak — bewust geen foutafhandeling richting de gebruiker.
+export async function streamDealRefresh(
+  onEvent: (event: string, data: Record<string, unknown>) => void,
+  signal?: AbortSignal,
+  force = true
+): Promise<void> {
+  const headers = await authHeaders();
+  const res = await fetch(`/api/deals/refresh?force=${force}`, {
+    method: 'POST',
+    headers,
+    signal,
+  });
+
+  if (!res.ok || !res.body) {
+    throw new Error(`Refresh mislukt: ${res.status}`);
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+
+    // SSE-berichten zijn gescheiden door dubbele newlines.
+    const messages = buffer.split('\n\n');
+    buffer = messages.pop() ?? '';
+
+    for (const message of messages) {
+      let eventName = '';
+      const dataLines: string[] = [];
+
+      for (const line of message.split('\n')) {
+        if (line.startsWith('event: ')) {
+          eventName = line.slice(7).trim();
+        } else if (line.startsWith('data: ')) {
+          dataLines.push(line.slice(6));
+        }
+      }
+
+      if (eventName && dataLines.length > 0) {
+        try {
+          const data = JSON.parse(dataLines.join('\n')) as Record<string, unknown>;
+          onEvent(eventName, data);
+        } catch {
+          // Malformed JSON — negeer.
+        }
+      }
+    }
   }
 }
 
