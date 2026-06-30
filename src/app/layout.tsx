@@ -32,8 +32,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="nl">
+    <html lang="nl" data-theme="ah">
       <head>
+        {/* Anti-FOUC: zet het opgeslagen thema synchroon op <html> vóór de
+            eerste paint, zodat de gebruiker nooit een flits van het
+            default-thema ziet bij een reload. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('famapp-theme');var allowed=['ah','crisp','oda','eataly','riverford'];if(allowed.indexOf(t)>-1){document.documentElement.dataset.theme=t;}}catch(e){}})();`,
+          }}
+        />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         {/* black-translucent laat de status-bar over de app heen vallen (edge-to-edge) */}
@@ -41,7 +49,9 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="FamApp" />
         {/* Icoon dat iOS gebruikt voor het beginscherm */}
         <link rel="apple-touch-icon" href="/icon-192x192.png" />
-        {/* Inter — clean humanist sans, dicht bij de AH-huisstijl */}
+        {/* Lettertypen voor alle thema's:
+            Inter (body/AH), Fraunces (Crisp), Space Grotesk (Oda),
+            Playfair Display (Eataly), Bitter (Riverford). */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
@@ -50,7 +60,7 @@ export default function RootLayout({
         />
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,900&family=Space+Grotesk:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700;800;900&family=Bitter:wght@400;500;600;700;800&display=swap"
         />
         {/* Phosphor Icons (Regular / outline-stijl) via CDN */}
         <link

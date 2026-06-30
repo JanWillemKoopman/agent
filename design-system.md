@@ -59,3 +59,29 @@ Deze tokens zijn gecodeerd in `tailwind.config.js` (`theme.extend`) en als CSS-v
 *   **Receptkaarten:** géén afbeeldingen — strakke tekstkaart met korting-badge, titel, prijs p.p. en winkel. Klikbaar naar detail.
 *   **Recept-detail:** full-screen overlay met prijs-samenvatting, ingrediënten-tabel (prijs, aanbieding, winkel) en uitgeschreven bereiding ("Aan de slag", genummerde stappen).
 *   **Login:** e-mail + wachtwoord (Supabase Auth) met een gecentreerd login/registratie-scherm.
+
+## 8. Dynamisch thema-systeem (Template selectie)
+Alle design-tokens zijn geabstraheerd naar CSS-variabelen, zodat de hele app van
+huisstijl kan wisselen via één `data-theme`-attribuut op `<html>`.
+
+*   **Tokens als variabelen:** kleuren worden bewaard als losse RGB-kanalen
+    (bijv. `--c-primary: 0 160 226`) en in `tailwind.config.js` geregistreerd als
+    `rgb(var(--token) / <alpha-value>)`. Daardoor blijven opacity-modifiers
+    (`bg-ahBlue/30`, `text-onNavy/80`) werken én kan elk thema de waarde
+    overschrijven. Naast kleuren zijn ook **geometrie** (`--r-card/-tile/-badge`),
+    **diepte** (`--s-card/-nav`), **typografie** (`--font-sans/-heading`,
+    `--heading-tracking/-leading`) en **micro-interacties**
+    (`--motion-dur/-ease`, `--press-scale`) getokeniseerd.
+*   **Semantische tokens:** `onPrimary` / `onAccent` / `onNavy` (contrast-tekst op
+    gekleurde vlakken) en `success` / `danger` / `warning` (+ `*Soft` / `*Ink`
+    varianten) vervangen alle hardcoded `text-white`, `bg-red-50`, `text-green-600`
+    enz. — zo blijft contrast kloppen, ook bij een licht primair (Oda-geel).
+*   **Vijf templates** (`src/app/globals.css`): `ah` (basis), `crisp`, `oda`,
+    `eataly`, `riverford`. Elk vertaalt het merk in kleur, oppervlak-tinten,
+    typografie, hoek-radii, schaduwdiepte en transitie-gevoel.
+*   **Architectuur:** `ThemeProvider` (`src/lib/theme/ThemeProvider.tsx`) past het
+    thema toe en bewaart de keuze in LocalStorage (`famapp-theme`); de metadata
+    voor de keuze-UI staat in `src/lib/theme/themes.ts`; de `ThemeSwitcher` onderaan
+    Instellingen toont de keuzekaarten + een live-preview. Een inline-script in
+    `layout.tsx` zet het opgeslagen thema vóór de eerste paint om FOUC te
+    voorkomen.

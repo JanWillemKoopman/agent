@@ -52,7 +52,7 @@ function StoreCard({ store, progress, dbStatus }: {
 
   return (
     <div className="flex items-center gap-3 rounded-card bg-surface border border-line p-4 shadow-card">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-ahBlueSoft">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-tile bg-ahBlueSoft">
         <i className="ph-fill ph-storefront text-lg text-ahBlue" aria-hidden="true" />
       </div>
 
@@ -74,16 +74,16 @@ function StoreCard({ store, progress, dbStatus }: {
           <i className="ph ph-circle-notch animate-spin text-xl text-ahBlue" aria-hidden="true" />
         )}
         {isDone && (
-          <i className="ph-fill ph-check-circle text-xl text-emerald-500" aria-hidden="true" />
+          <i className="ph-fill ph-check-circle text-xl text-success" aria-hidden="true" />
         )}
         {isFailed && (
-          <i className="ph-fill ph-warning-circle text-xl text-red-500" aria-hidden="true" />
+          <i className="ph-fill ph-warning-circle text-xl text-danger" aria-hidden="true" />
         )}
         {(isIdle && !showDbData) && (
           <i className="ph ph-clock text-xl text-muted" aria-hidden="true" />
         )}
         {showDbData && (
-          <i className="ph-fill ph-check-circle text-xl text-emerald-500" aria-hidden="true" />
+          <i className="ph-fill ph-check-circle text-xl text-success" aria-hidden="true" />
         )}
       </div>
     </div>
@@ -125,7 +125,7 @@ export function DataRefreshScreen({
       {/* Header */}
       <div className="shrink-0 flex items-center justify-between border-b border-line bg-surface px-4 py-3">
         <div className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-ahBlue text-white">
+          <span className="flex h-8 w-8 items-center justify-center rounded-tile bg-ahBlue text-onPrimary">
             <i className="ph-fill ph-database text-base" aria-hidden="true" />
           </span>
           <div>
@@ -137,7 +137,7 @@ export function DataRefreshScreen({
           type="button"
           onClick={onClose}
           aria-label="Sluiten"
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-muted hover:bg-line hover:text-navy transition-colors"
+          className="flex h-9 w-9 items-center justify-center rounded-tile text-muted hover:bg-line hover:text-navy transition-colors"
         >
           <i className="ph ph-x text-xl" aria-hidden="true" />
         </button>
@@ -149,11 +149,11 @@ export function DataRefreshScreen({
 
           {/* Succesmelding */}
           {isDone && !error && (
-            <div className="flex items-center gap-3 rounded-card bg-emerald-50 border border-emerald-200 p-4">
-              <i className="ph-fill ph-check-circle text-2xl text-emerald-500 shrink-0" aria-hidden="true" />
+            <div className="flex items-center gap-3 rounded-card bg-successSoft border border-success/30 p-4">
+              <i className="ph-fill ph-check-circle text-2xl text-success shrink-0" aria-hidden="true" />
               <div>
-                <p className="text-sm font-semibold text-emerald-800">Klaar!</p>
-                <p className="text-xs text-emerald-700 mt-0.5">
+                <p className="text-sm font-semibold text-successInk">Klaar!</p>
+                <p className="text-xs text-successInk/80 mt-0.5">
                   Alle aanbiedingen zijn opgehaald en opgeslagen. Je kunt nu recepten genereren.
                 </p>
               </div>
@@ -162,11 +162,11 @@ export function DataRefreshScreen({
 
           {/* Foutmelding */}
           {error && (
-            <div className="flex items-center gap-3 rounded-card bg-red-50 border border-red-200 p-4">
-              <i className="ph-fill ph-warning-circle text-2xl text-red-500 shrink-0" aria-hidden="true" />
+            <div className="flex items-center gap-3 rounded-card bg-dangerSoft border border-danger/30 p-4">
+              <i className="ph-fill ph-warning-circle text-2xl text-danger shrink-0" aria-hidden="true" />
               <div>
-                <p className="text-sm font-semibold text-red-800">Er ging iets mis</p>
-                <p className="text-xs text-red-700 mt-0.5">{error}</p>
+                <p className="text-sm font-semibold text-dangerInk">Er ging iets mis</p>
+                <p className="text-xs text-dangerInk/80 mt-0.5">{error}</p>
               </div>
             </div>
           )}
@@ -240,7 +240,7 @@ export function DataRefreshScreen({
             transition-all
             ${buttonDisabled
               ? 'bg-line text-muted cursor-not-allowed'
-              : 'bg-ahBlue text-white hover:bg-ahBlueDark active:scale-[0.98]'
+              : 'bg-ahBlue text-onPrimary hover:bg-ahBlueDark active:scale-[0.98]'
             }
           `}
         >

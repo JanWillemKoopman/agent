@@ -1,4 +1,12 @@
 /** @type {import('tailwindcss').Config} */
+
+// Elke kleur-token wordt teruggebracht naar een CSS-variabele met losse RGB-
+// kanalen (bijv. `--c-primary: 0 160 226`). Door ze als
+// `rgb(var(--token) / <alpha-value>)` te registreren blijven Tailwind-opacity-
+// modifiers (`bg-ahBlue/30`, `text-onNavy/80`) gewoon werken én kan elk thema
+// de variabele overschrijven via een `data-theme`-attribuut (zie globals.css).
+const withAlpha = (variable) => `rgb(var(${variable}) / <alpha-value>)`;
+
 module.exports = {
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
@@ -8,35 +16,51 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // AH-geïnspireerd design-systeem
-        ahBlue: '#00a0e2',
-        ahBlueDark: '#0089c3',
-        ahBlueSoft: '#e6f6fd',
-        kortingOrange: '#f28e00',
-        navy: '#21303f', // donkere balk + koppen (allerhande-stijl)
-        ink: '#1a1a1a', // primaire tekst
-        muted: '#6b7785', // secundaire tekst
-        line: '#e6e8eb', // randen
-        appBg: '#f5f6f7', // pagina-achtergrond
-        surface: '#ffffff',
+        // — Merk / primaire actie —
+        ahBlue: withAlpha('--c-primary'),
+        ahBlueDark: withAlpha('--c-primary-dark'),
+        ahBlueSoft: withAlpha('--c-primary-soft'),
+        onPrimary: withAlpha('--c-on-primary'), // tekst/iconen óp een primair vlak
+
+        // — Korting / accent —
+        kortingOrange: withAlpha('--c-accent'),
+        kortingOrangeDark: withAlpha('--c-accent-dark'),
+        onAccent: withAlpha('--c-on-accent'), // tekst óp een accent-badge
+
+        // — Donkere koppen / navigatie —
+        navy: withAlpha('--c-heading'),
+        navyDark: withAlpha('--c-heading-dark'),
+        onNavy: withAlpha('--c-on-heading'), // tekst óp een navy vlak
+
+        // — Tekst & oppervlakken —
+        ink: withAlpha('--c-ink'),
+        muted: withAlpha('--c-muted'),
+        line: withAlpha('--c-line'),
+        appBg: withAlpha('--c-bg'),
+        surface: withAlpha('--c-surface'),
+
+        // — Semantische staten —
+        success: withAlpha('--c-success'),
+        successSoft: withAlpha('--c-success-soft'),
+        successInk: withAlpha('--c-success-ink'),
+        danger: withAlpha('--c-danger'),
+        dangerSoft: withAlpha('--c-danger-soft'),
+        dangerInk: withAlpha('--c-danger-ink'),
+        warning: withAlpha('--c-warning'),
       },
       borderRadius: {
-        card: '12px',
+        card: 'var(--r-card)',
+        tile: 'var(--r-tile)',
+        badge: 'var(--r-badge)',
         pill: '9999px',
       },
       boxShadow: {
-        card: '0 1px 3px rgba(16,24,40,0.06), 0 1px 2px rgba(16,24,40,0.04)',
-        nav: '0 -1px 8px rgba(16,24,40,0.06)',
+        card: 'var(--s-card)',
+        nav: 'var(--s-nav)',
       },
       fontFamily: {
-        sans: [
-          'Inter',
-          'system-ui',
-          '-apple-system',
-          'Segoe UI',
-          'Roboto',
-          'sans-serif',
-        ],
+        sans: ['var(--font-sans)', 'system-ui', '-apple-system', 'sans-serif'],
+        heading: ['var(--font-heading)', 'var(--font-sans)', 'serif'],
       },
     },
   },

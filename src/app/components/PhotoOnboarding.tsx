@@ -37,10 +37,10 @@ export function PhotoOnboarding({ onDone }: PhotoOnboardingProps) {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="mb-8 flex flex-col items-center gap-3">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-ahBlue text-white shadow-card">
+          <div className="flex h-16 w-16 items-center justify-center rounded-tile bg-ahBlue text-onPrimary shadow-card">
             <i className="ph-fill ph-cooking-pot text-3xl" aria-hidden="true" />
           </div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-navy">
+          <h1 className="font-heading text-2xl font-extrabold tracking-tight text-navy">
             Welkom bij FamApp!
           </h1>
           <p className="text-center text-sm text-muted">
@@ -56,7 +56,7 @@ export function PhotoOnboarding({ onDone }: PhotoOnboardingProps) {
           />
 
           {error && (
-            <p className="mt-4 rounded-card bg-red-50 px-3 py-2 text-sm text-red-700">
+            <p className="mt-4 rounded-card bg-dangerSoft px-3 py-2 text-sm text-dangerInk">
               {error}
             </p>
           )}
@@ -65,7 +65,7 @@ export function PhotoOnboarding({ onDone }: PhotoOnboardingProps) {
             type="button"
             onClick={handleSave}
             disabled={!pendingFile || busy}
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-pill bg-ahBlue py-3 text-sm font-semibold text-white transition-colors hover:bg-ahBlueDark disabled:opacity-60"
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-pill bg-ahBlue py-3 text-sm font-semibold text-onPrimary transition-colors hover:bg-ahBlueDark disabled:opacity-60"
           >
             {busy ? (
               <>

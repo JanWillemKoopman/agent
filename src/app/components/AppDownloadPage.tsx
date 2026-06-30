@@ -40,7 +40,7 @@ export function AppDownloadPage({ onClose }: AppDownloadPageProps) {
     <div className="fixed inset-0 z-50 overflow-y-auto bg-appBg">
       {/* Header */}
       <div className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-surface px-4 py-3">
-        <h1 className="text-base font-extrabold text-navy">App downloaden</h1>
+        <h1 className="font-heading text-base font-extrabold text-navy">App downloaden</h1>
         <button
           type="button"
           onClick={onClose}
@@ -54,11 +54,11 @@ export function AppDownloadPage({ onClose }: AppDownloadPageProps) {
       <div className="mx-auto max-w-sm space-y-5 p-4">
         {/* Intro */}
         <div className="flex flex-col items-center gap-3 pt-2 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-ahBlue text-white shadow-card">
+          <div className="flex h-16 w-16 items-center justify-center rounded-tile bg-ahBlue text-onPrimary shadow-card">
             <i className="ph-fill ph-cooking-pot text-3xl" aria-hidden="true" />
           </div>
           <div>
-            <h2 className="text-xl font-extrabold text-navy">FamApp op je telefoon</h2>
+            <h2 className="font-heading text-xl font-extrabold text-navy">FamApp op je telefoon</h2>
             <p className="mt-1 text-sm text-muted">
               Zet de app op je beginscherm voor directe toegang en de beste ervaring.
             </p>
@@ -106,7 +106,7 @@ export function AppDownloadPage({ onClose }: AppDownloadPageProps) {
               type="button"
               onClick={subscribe}
               disabled={notifDisabled}
-              className="flex w-full items-center justify-center gap-2 rounded-pill bg-ahBlue py-3 text-sm font-semibold text-white transition-colors hover:bg-ahBlueDark disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-pill bg-ahBlue py-3 text-sm font-semibold text-onPrimary transition-colors hover:bg-ahBlueDark disabled:opacity-60"
             >
               {busy ? (
                 <i className="ph ph-circle-notch animate-spin text-base" aria-hidden="true" />

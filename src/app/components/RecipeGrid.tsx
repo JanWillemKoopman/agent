@@ -14,7 +14,7 @@ export function RecipeGrid({ recipes, onOpen, title }: RecipeGridProps) {
 
   return (
     <section className="space-y-3">
-      {title && <h2 className="px-1 text-lg font-bold text-navy">{title}</h2>}
+      {title && <h2 className="px-1 font-heading text-lg font-bold text-navy">{title}</h2>}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {recipes.map((recipe, idx) => (
           <RecipeCard

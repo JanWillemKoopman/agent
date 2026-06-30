@@ -37,7 +37,7 @@ export function AvatarUpload({ currentUrl, initial, onFileSelected }: AvatarUplo
           </span>
         )}
         <span className="absolute inset-0 flex items-center justify-center bg-navy/40 opacity-0 transition-opacity group-hover:opacity-100">
-          <i className="ph-fill ph-camera text-2xl text-white" aria-hidden="true" />
+          <i className="ph-fill ph-camera text-2xl text-onNavy" aria-hidden="true" />
         </span>
       </button>
 

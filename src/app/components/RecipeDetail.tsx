@@ -90,17 +90,17 @@ export function RecipeDetail({ recipe, onClose }: RecipeDetailProps) {
           <section className="space-y-2">
             <div className="flex flex-wrap items-center gap-1.5">
               {recipe.korting_deal_count > 0 && (
-                <span className="inline-flex items-center gap-1 rounded-md bg-kortingOrange px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white">
+                <span className="inline-flex items-center gap-1 rounded-badge bg-kortingOrange px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-onAccent">
                   <i className="ph-fill ph-tag text-xs" aria-hidden="true" />
                   {recipe.korting_deal_count}x korting
                 </span>
               )}
-              <span className="inline-flex items-center gap-1 rounded-md bg-appBg px-2 py-0.5 text-[11px] font-medium text-muted">
+              <span className="inline-flex items-center gap-1 rounded-badge bg-appBg px-2 py-0.5 text-[11px] font-medium text-muted">
                 <i className="ph ph-users-three text-xs" aria-hidden="true" />
                 {servings} personen
               </span>
             </div>
-            <h1 className="text-2xl font-extrabold leading-tight text-navy">
+            <h1 className="font-heading text-2xl font-extrabold leading-tight text-navy">
               {recipe.recipe_name}
             </h1>
             <p className="text-sm text-muted">{recipe.description}</p>
@@ -126,7 +126,7 @@ export function RecipeDetail({ recipe, onClose }: RecipeDetailProps) {
             </div>
             {priceIncomplete && (
               <p className="flex items-start gap-1.5 px-1 text-[11px] leading-snug text-muted">
-                <i className="ph ph-info mt-0.5 shrink-0 text-amber-500" aria-hidden="true" />
+                <i className="ph ph-info mt-0.5 shrink-0 text-warning" aria-hidden="true" />
                 Richtprijs — van één of meer ingrediënten kon de prijs niet worden
                 opgehaald (zie "n.t.b." hieronder).
               </p>
@@ -135,7 +135,7 @@ export function RecipeDetail({ recipe, onClose }: RecipeDetailProps) {
 
           {/* Ingrediënten-tabel */}
           <section className="space-y-2">
-            <h2 className="px-1 text-lg font-bold text-navy">Ingrediënten</h2>
+            <h2 className="px-1 font-heading text-lg font-bold text-navy">Ingrediënten</h2>
             <div className="overflow-hidden rounded-card bg-surface shadow-card">
               <div className="flex items-center justify-between border-b border-line px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted">
                 <span>Ingrediënt</span>
@@ -152,7 +152,7 @@ export function RecipeDetail({ recipe, onClose }: RecipeDetailProps) {
           {/* Bereiding */}
           {instructions.length > 0 && (
             <section className="space-y-2">
-              <h2 className="px-1 text-lg font-bold text-navy">Aan de slag</h2>
+              <h2 className="px-1 font-heading text-lg font-bold text-navy">Aan de slag</h2>
               <ol className="space-y-3 rounded-card bg-surface p-4 shadow-card">
                 {instructions.map((step, idx) => (
                   <li key={idx} className="flex gap-3">
@@ -588,7 +588,7 @@ function IngredientRow({ ing }: { ing: PricedIngredient }) {
             </span>
           )}
           {ing.is_pantry ? (
-            <span className="inline-flex items-center gap-1 font-medium text-green-600">
+            <span className="inline-flex items-center gap-1 font-medium text-success">
               <i className="ph ph-house text-[10px]" aria-hidden="true" />
               In huis
             </span>
@@ -603,9 +603,9 @@ function IngredientRow({ ing }: { ing: PricedIngredient }) {
       <span
         className={`shrink-0 text-sm font-semibold ${
           ing.is_pantry
-            ? 'text-green-600'
+            ? 'text-success'
             : ing.price == null
-              ? 'text-amber-600'
+              ? 'text-warning'
               : 'text-ink'
         }`}
       >

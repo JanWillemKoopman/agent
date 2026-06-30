@@ -42,7 +42,7 @@ export function TrackerTab() {
 
       {/* Foutmelding */}
       {error && !isSearching && (
-        <div className="flex items-start gap-2 rounded-card border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div className="flex items-start gap-2 rounded-card border border-danger/30 bg-dangerSoft p-4 text-sm text-dangerInk">
           <i className="ph-fill ph-warning-circle mt-0.5 shrink-0 text-base" aria-hidden="true" />
           <span>{error}</span>
         </div>
@@ -62,7 +62,7 @@ export function TrackerTab() {
       {/* Resultaten — gevonden deals */}
       {deals.length > 0 && (
         <section className="space-y-3">
-          <h2 className="px-1 text-lg font-bold text-navy">
+          <h2 className="px-1 font-heading text-lg font-bold text-navy">
             In de aanbieding
             <span className="ml-2 text-sm font-normal text-muted">
               ({deals.length} {deals.length === 1 ? 'product' : 'producten'})
@@ -143,7 +143,7 @@ function SearchButton({
       className={`flex w-full items-center justify-center gap-2 rounded-pill py-3.5 text-sm font-semibold transition-colors ${
         disabled || isSearching
           ? 'bg-appBg text-muted cursor-not-allowed'
-          : 'bg-ahBlue text-white hover:bg-ahBlueDark'
+          : 'bg-ahBlue text-onPrimary hover:bg-ahBlueDark'
       }`}
     >
       {isSearching ? (
@@ -170,7 +170,7 @@ function TrackerDealCard({ deal }: { deal: Deal }) {
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5 mb-1">
             {deal.deal_description && (
-              <span className="inline-flex items-center gap-1 rounded-md bg-kortingOrange px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white">
+              <span className="inline-flex items-center gap-1 rounded-badge bg-kortingOrange px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-onAccent">
                 <i className="ph-fill ph-tag text-[10px]" aria-hidden="true" />
                 {deal.deal_description}
               </span>
@@ -342,7 +342,7 @@ function ProductsOverlay({
             type="button"
             onClick={handleAdd}
             disabled={!newProduct.trim() || isAdding}
-            className="flex items-center gap-1.5 rounded-pill bg-ahBlue px-4 py-2.5 text-sm font-semibold text-white hover:bg-ahBlueDark transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+            className="flex items-center gap-1.5 rounded-pill bg-ahBlue px-4 py-2.5 text-sm font-semibold text-onPrimary hover:bg-ahBlueDark transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
           >
             {isAdding ? (
               <i className="ph ph-circle-notch animate-spin text-base" aria-hidden="true" />
@@ -410,7 +410,7 @@ function ProductRow({
             onClick={onSaveEdit}
             disabled={isSaving || !editValue.trim()}
             aria-label="Opslaan"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-ahBlueSoft text-ahBlue hover:bg-ahBlue hover:text-white transition-colors disabled:opacity-50"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-ahBlueSoft text-ahBlue hover:bg-ahBlue hover:text-onPrimary transition-colors disabled:opacity-50"
           >
             {isSaving ? (
               <i className="ph ph-circle-notch animate-spin text-sm" aria-hidden="true" />
@@ -444,7 +444,7 @@ function ProductRow({
             type="button"
             onClick={onDelete}
             aria-label={`${product.product_name} verwijderen`}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-muted hover:bg-red-50 hover:text-red-500 transition-colors"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-muted hover:bg-dangerSoft hover:text-danger transition-colors"
           >
             <i className="ph ph-trash text-base" aria-hidden="true" />
           </button>

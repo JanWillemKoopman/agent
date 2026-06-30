@@ -13,7 +13,7 @@ export function UpdateBanner({ visible, onRefresh }: UpdateBannerProps) {
       className="fixed inset-x-0 z-50 px-4"
       style={{ bottom: 'calc(4.5rem + env(safe-area-inset-bottom))' }}
     >
-      <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 rounded-card bg-navy px-4 py-3 text-sm text-white shadow-card">
+      <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 rounded-card bg-navy px-4 py-3 text-sm text-onNavy shadow-card">
         <span className="flex items-center gap-2">
           <i className="ph ph-arrows-clockwise text-lg" aria-hidden="true" />
           Nieuwe versie beschikbaar
@@ -21,7 +21,7 @@ export function UpdateBanner({ visible, onRefresh }: UpdateBannerProps) {
         <button
           type="button"
           onClick={onRefresh}
-          className="rounded-pill bg-ahBlue px-4 py-1.5 font-semibold text-white transition-colors hover:bg-ahBlueDark"
+          className="rounded-pill bg-ahBlue px-4 py-1.5 font-semibold text-onPrimary transition-colors hover:bg-ahBlueDark"
         >
           Verversen
         </button>

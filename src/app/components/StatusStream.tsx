@@ -33,7 +33,7 @@ export function StatusStream({ lines, isGenerating }: StatusStreamProps) {
                 className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
                   done
                     ? 'bg-ahBlueSoft text-ahBlue'
-                    : 'bg-ahBlue text-white'
+                    : 'bg-ahBlue text-onPrimary'
                 }`}
               >
                 {active ? (

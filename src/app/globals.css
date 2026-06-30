@@ -2,14 +2,245 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --ah-blue: #00a0e2;
-  --korting-orange: #f28e00;
-  --navy: #21303f;
-  --ink: #1a1a1a;
-  --app-bg: #f5f6f7;
-  --surface: #ffffff;
+/* ==========================================================================
+   FamApp · Dynamisch thema-systeem
+   --------------------------------------------------------------------------
+   Elk thema definieert exact dezelfde set design-tokens. De Tailwind-config
+   leest deze als `rgb(var(--c-*) / <alpha-value>)`, dus kleuren bewaren we als
+   losse RGB-kanalen ("R G B"). Een thema wordt geactiveerd via een
+   `data-theme`-attribuut op <html> (of op een willekeurig vlak voor de
+   live-preview). `:root` is de Albert Heijn-basis, zodat de app altijd een
+   geldig thema heeft — ook vóór de hydrate.
+   ========================================================================== */
+
+:root,
+[data-theme='ah'] {
+  /* Kleuren — Albert Heijn: helder digitaal blauw, warm navy, pop-oranje */
+  --c-primary: 0 160 226;
+  --c-primary-dark: 0 137 195;
+  --c-primary-soft: 230 246 253;
+  --c-on-primary: 255 255 255;
+  --c-accent: 242 142 0;
+  --c-accent-dark: 217 123 0;
+  --c-on-accent: 255 255 255;
+  --c-heading: 33 48 63;
+  --c-heading-dark: 26 39 51;
+  --c-on-heading: 255 255 255;
+  --c-ink: 26 26 26;
+  --c-muted: 107 119 133;
+  --c-line: 230 232 235;
+  --c-bg: 245 246 247;
+  --c-surface: 255 255 255;
+  --c-success: 16 185 129;
+  --c-success-soft: 236 253 245;
+  --c-success-ink: 6 95 70;
+  --c-danger: 239 68 68;
+  --c-danger-soft: 254 242 242;
+  --c-danger-ink: 185 28 28;
+  --c-warning: 245 158 11;
+
+  /* Geometrie — moderne 12px afgeronde kaarten */
+  --r-card: 12px;
+  --r-tile: 12px;
+  --r-badge: 6px;
+
+  /* Diepte — fijne, subtiele kaartschaduw */
+  --s-card: 0 1px 3px rgba(16, 24, 40, 0.06), 0 1px 2px rgba(16, 24, 40, 0.04);
+  --s-nav: 0 -1px 8px rgba(16, 24, 40, 0.06);
+
+  /* Typografie — strak humanistisch (Inter) */
+  --font-sans: 'Inter';
+  --font-heading: 'Inter';
+  --heading-tracking: -0.01em;
+  --heading-leading: 1.15;
+
+  /* Micro-interacties — vlot en zakelijk */
+  --motion-dur: 150ms;
+  --motion-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --press-scale: 0.98;
 }
+
+/* --------------------------------------------------------------------------
+   Crisp.nl — ultravers, premium, biologisch. Diep bosgroen op milky cream,
+   elegante editorial serif, zachte squircles, organische fades.
+   -------------------------------------------------------------------------- */
+[data-theme='crisp'] {
+  --c-primary: 47 93 58;
+  --c-primary-dark: 36 74 46;
+  --c-primary-soft: 232 239 231;
+  --c-on-primary: 247 245 238;
+  --c-accent: 210 96 63;
+  --c-accent-dark: 178 76 47;
+  --c-on-accent: 253 250 243;
+  --c-heading: 37 55 42;
+  --c-heading-dark: 27 41 31;
+  --c-on-heading: 243 240 231;
+  --c-ink: 43 42 36;
+  --c-muted: 125 122 110;
+  --c-line: 227 222 210;
+  --c-bg: 246 243 234;
+  --c-surface: 255 253 247;
+  --c-success: 75 125 79;
+  --c-success-soft: 232 239 230;
+  --c-success-ink: 47 93 58;
+  --c-danger: 180 84 58;
+  --c-danger-soft: 246 233 227;
+  --c-danger-ink: 138 60 40;
+  --c-warning: 201 138 60;
+
+  --r-card: 20px;
+  --r-tile: 18px;
+  --r-badge: 10px;
+
+  --s-card: 0 4px 16px rgba(47, 93, 58, 0.08), 0 1px 3px rgba(47, 93, 58, 0.05);
+  --s-nav: 0 -2px 14px rgba(47, 93, 58, 0.06);
+
+  --font-sans: 'Inter';
+  --font-heading: 'Fraunces';
+  --heading-tracking: -0.005em;
+  --heading-leading: 1.1;
+
+  --motion-dur: 280ms;
+  --motion-ease: cubic-bezier(0.25, 0.8, 0.4, 1);
+  --press-scale: 0.99;
+}
+
+/* --------------------------------------------------------------------------
+   Oda.com — speels, efficiënt, tech-forward Scandinavisch. Frisse groen met
+   knal-geel accent, geometrische tech-sans, strakke lijnen, snappy transities.
+   -------------------------------------------------------------------------- */
+[data-theme='oda'] {
+  --c-primary: 26 163 90;
+  --c-primary-dark: 21 128 61;
+  --c-primary-soft: 220 245 231;
+  --c-on-primary: 255 255 255;
+  --c-accent: 255 210 63;
+  --c-accent-dark: 240 185 20;
+  --c-on-accent: 20 23 26;
+  --c-heading: 20 23 26;
+  --c-heading-dark: 8 10 12;
+  --c-on-heading: 255 255 255;
+  --c-ink: 20 23 26;
+  --c-muted: 91 102 112;
+  --c-line: 231 234 236;
+  --c-bg: 244 246 245;
+  --c-surface: 255 255 255;
+  --c-success: 26 163 90;
+  --c-success-soft: 220 245 231;
+  --c-success-ink: 21 128 61;
+  --c-danger: 229 72 77;
+  --c-danger-soft: 255 236 235;
+  --c-danger-ink: 192 48 58;
+  --c-warning: 245 166 35;
+
+  --r-card: 10px;
+  --r-tile: 10px;
+  --r-badge: 6px;
+
+  --s-card: 0 1px 2px rgba(20, 23, 26, 0.08), 0 0 0 1px rgba(20, 23, 26, 0.04);
+  --s-nav: 0 -1px 0 rgba(20, 23, 26, 0.08);
+
+  --font-sans: 'Inter';
+  --font-heading: 'Space Grotesk';
+  --heading-tracking: -0.02em;
+  --heading-leading: 1.1;
+
+  --motion-dur: 110ms;
+  --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+  --press-scale: 0.96;
+}
+
+/* --------------------------------------------------------------------------
+   Eataly.com — premium, artisanaal, Italiaans luxe. Houtskool/zwart, rijk
+   oker-goud accent, klassieke haarlijnen, verfijnde editorial serif.
+   -------------------------------------------------------------------------- */
+[data-theme='eataly'] {
+  --c-primary: 28 28 26;
+  --c-primary-dark: 0 0 0;
+  --c-primary-soft: 240 236 226;
+  --c-on-primary: 250 246 236;
+  --c-accent: 182 134 44;
+  --c-accent-dark: 150 108 30;
+  --c-on-accent: 28 28 26;
+  --c-heading: 28 28 26;
+  --c-heading-dark: 0 0 0;
+  --c-on-heading: 244 234 210;
+  --c-ink: 28 28 26;
+  --c-muted: 131 124 110;
+  --c-line: 221 214 200;
+  --c-bg: 246 242 233;
+  --c-surface: 255 254 251;
+  --c-success: 90 125 60;
+  --c-success-soft: 238 240 228;
+  --c-success-ink: 63 90 41;
+  --c-danger: 155 44 44;
+  --c-danger-soft: 244 231 228;
+  --c-danger-ink: 122 34 34;
+  --c-warning: 182 134 44;
+
+  --r-card: 3px;
+  --r-tile: 3px;
+  --r-badge: 0px;
+
+  --s-card: 0 0 0 1px rgba(28, 28, 26, 0.09);
+  --s-nav: 0 -1px 0 rgba(28, 28, 26, 0.12);
+
+  --font-sans: 'Inter';
+  --font-heading: 'Playfair Display';
+  --heading-tracking: 0em;
+  --heading-leading: 1.12;
+
+  --motion-dur: 220ms;
+  --motion-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --press-scale: 0.99;
+}
+
+/* --------------------------------------------------------------------------
+   Riverford.co.uk — authentiek, rustiek, farm-to-table. Aardse modder-groenen,
+   klei/terracotta, ongebleekt papier/beige, karaktervolle chunky display-serif.
+   -------------------------------------------------------------------------- */
+[data-theme='riverford'] {
+  --c-primary: 58 90 44;
+  --c-primary-dark: 44 71 32;
+  --c-primary-soft: 231 234 217;
+  --c-on-primary: 247 243 232;
+  --c-accent: 191 90 54;
+  --c-accent-dark: 160 72 40;
+  --c-on-accent: 247 243 232;
+  --c-heading: 51 64 42;
+  --c-heading-dark: 38 49 30;
+  --c-on-heading: 243 238 224;
+  --c-ink: 51 48 42;
+  --c-muted: 122 115 99;
+  --c-line: 221 212 192;
+  --c-bg: 243 236 219;
+  --c-surface: 250 245 233;
+  --c-success: 91 124 52;
+  --c-success-soft: 232 236 215;
+  --c-success-ink: 61 85 32;
+  --c-danger: 168 68 44;
+  --c-danger-soft: 241 227 218;
+  --c-danger-ink: 126 50 32;
+  --c-warning: 200 133 47;
+
+  --r-card: 14px;
+  --r-tile: 14px;
+  --r-badge: 8px;
+
+  --s-card: 0 2px 10px rgba(51, 64, 42, 0.08), 0 1px 2px rgba(51, 64, 42, 0.05);
+  --s-nav: 0 -2px 10px rgba(51, 64, 42, 0.06);
+
+  --font-sans: 'Inter';
+  --font-heading: 'Bitter';
+  --heading-tracking: -0.01em;
+  --heading-leading: 1.12;
+
+  --motion-dur: 240ms;
+  --motion-ease: cubic-bezier(0.34, 0.8, 0.34, 1);
+  --press-scale: 0.98;
+}
+
+/* ========================================================================== */
 
 * {
   margin: 0;
@@ -24,14 +255,48 @@ body {
 }
 
 body {
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
-    'Roboto', sans-serif;
+  font-family: var(--font-sans), system-ui, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', 'Roboto', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: var(--app-bg);
-  color: var(--ink);
+  background: rgb(var(--c-bg));
+  color: rgb(var(--c-ink));
   overflow: hidden;
   overscroll-behavior-y: none;
+}
+
+/* Koppen krijgen het thema-display-lettertype + bijpassende tracking/leading.
+   `.font-heading` is óók de Tailwind-utility (font-family); deze regel vult
+   die aan met de per-thema letterafstand en regelhoogte. */
+.font-heading {
+  letter-spacing: var(--heading-tracking, normal);
+  line-height: var(--heading-leading, 1.15);
+}
+
+/* Micro-interacties per thema: hertune élke Tailwind-transitie naar de duur en
+   easing van het actieve merk (snappy voor Oda, zachte fades voor Crisp). */
+[class*='transition-'] {
+  transition-duration: var(--motion-dur, 150ms);
+  transition-timing-function: var(--motion-ease, ease);
+}
+
+/* Zachte kleur-cross-fade wanneer de gebruiker van thema wisselt. */
+body,
+header,
+nav,
+section,
+article,
+button,
+input,
+a,
+span,
+p,
+h1,
+h2,
+h3 {
+  transition-property: background-color, border-color, color, box-shadow;
+  transition-duration: var(--motion-dur, 150ms);
+  transition-timing-function: var(--motion-ease, ease);
 }
 
 /* Phosphor icons baseline sizing */
@@ -41,7 +306,7 @@ i[class*=' ph'] {
   line-height: 1;
 }
 
-/* Verberg getallenspinners voor een strakke AH-look */
+/* Verberg getallenspinners voor een strakke look */
 input[type='number']::-webkit-outer-spin-button,
 input[type='number']::-webkit-inner-spin-button {
   -webkit-appearance: none;

@@ -11,7 +11,7 @@ export function GenerateButton({ onClick, isGenerating }: GenerateButtonProps) {
       type="button"
       onClick={onClick}
       disabled={isGenerating}
-      className="flex w-full items-center justify-center gap-2 rounded-pill bg-ahBlue px-6 py-4 text-base font-semibold text-white shadow-card transition-colors hover:bg-ahBlueDark disabled:cursor-not-allowed disabled:opacity-60"
+      className="flex w-full items-center justify-center gap-2 rounded-pill bg-ahBlue px-6 py-4 text-base font-semibold text-onPrimary shadow-card transition-colors hover:bg-ahBlueDark disabled:cursor-not-allowed disabled:opacity-60"
     >
       {isGenerating ? (
         <>

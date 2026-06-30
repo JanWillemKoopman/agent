@@ -50,7 +50,7 @@ export function AccountPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="px-1 text-xl font-extrabold text-navy">Account</h1>
+      <h1 className="px-1 font-heading text-xl font-extrabold text-navy">Account</h1>
 
       {/* Profielfoto */}
       <section className="space-y-4 rounded-card bg-surface p-4 shadow-card">
@@ -63,7 +63,7 @@ export function AccountPage() {
         />
 
         {error && (
-          <p className="rounded-card bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+          <p className="rounded-card bg-dangerSoft px-3 py-2 text-sm text-dangerInk">{error}</p>
         )}
         {savedOk && (
           <p className="flex items-center gap-1.5 text-sm text-ahBlueDark">
@@ -76,7 +76,7 @@ export function AccountPage() {
           type="button"
           onClick={handleSavePhoto}
           disabled={!pendingFile || saving}
-          className="flex w-full items-center justify-center gap-2 rounded-pill bg-ahBlue py-3 text-sm font-semibold text-white transition-colors hover:bg-ahBlueDark disabled:opacity-60"
+          className="flex w-full items-center justify-center gap-2 rounded-pill bg-ahBlue py-3 text-sm font-semibold text-onPrimary transition-colors hover:bg-ahBlueDark disabled:opacity-60"
         >
           {saving ? (
             <>

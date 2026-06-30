@@ -29,10 +29,10 @@ export function InstallModal({ onDone, onLater }: InstallModalProps) {
       <div className="w-full max-w-sm">
         {/* Logo + header */}
         <div className="mb-6 flex flex-col items-center gap-3">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-ahBlue text-white shadow-card">
+          <div className="flex h-16 w-16 items-center justify-center rounded-tile bg-ahBlue text-onPrimary shadow-card">
             <i className="ph-fill ph-cooking-pot text-3xl" aria-hidden="true" />
           </div>
-          <h1 className="text-center text-2xl font-extrabold tracking-tight text-navy">
+          <h1 className="text-center font-heading text-2xl font-extrabold tracking-tight text-navy">
             Voeg FamApp toe aan je beginscherm
           </h1>
           <p className="text-center text-sm text-muted">
@@ -62,7 +62,7 @@ export function InstallModal({ onDone, onLater }: InstallModalProps) {
         <button
           type="button"
           onClick={onDone}
-          className="flex w-full items-center justify-center gap-2 rounded-pill bg-ahBlue py-3 text-sm font-semibold text-white transition-colors hover:bg-ahBlueDark"
+          className="flex w-full items-center justify-center gap-2 rounded-pill bg-ahBlue py-3 text-sm font-semibold text-onPrimary transition-colors hover:bg-ahBlueDark"
         >
           <i className="ph-fill ph-check text-base" aria-hidden="true" />
           Begrepen, ik ga het doen

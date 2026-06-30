@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { AuthProvider } from './auth-context';
+import { ThemeProvider } from '@/lib/theme/ThemeProvider';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
@@ -14,5 +15,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  return <AuthProvider>{children}</AuthProvider>;
+  return (
+    <ThemeProvider>
+      <AuthProvider>{children}</AuthProvider>
+    </ThemeProvider>
+  );
 }

@@ -60,28 +60,43 @@ function AppCard({ card, onNavigate }: { card: FeatureCard; onNavigate: (tab: Ta
         transition-all duration-200 active:scale-[0.97]
         ${isBlue
           ? 'bg-ahBlue hover:bg-ahBlueDark'
-          : 'bg-navy hover:bg-[#1a2733]'
+          : 'bg-navy hover:bg-navyDark'
         }
       `}
       style={{ minHeight: '140px' }}
     >
       <div className="flex flex-col gap-1.5">
-        <i className={`${card.icon} text-2xl text-white/80`} aria-hidden="true" />
-        <h2 className="text-left text-base font-extrabold uppercase tracking-wide text-white leading-tight">
+        <i
+          className={`${card.icon} text-2xl ${isBlue ? 'text-onPrimary/80' : 'text-onNavy/80'}`}
+          aria-hidden="true"
+        />
+        <h2
+          className={`font-heading text-left text-base font-extrabold uppercase tracking-wide leading-tight ${
+            isBlue ? 'text-onPrimary' : 'text-onNavy'
+          }`}
+        >
           {card.title}
         </h2>
-        <p className="text-left text-xs font-medium text-white/80 leading-snug">
+        <p
+          className={`text-left text-xs font-medium leading-snug ${
+            isBlue ? 'text-onPrimary/80' : 'text-onNavy/80'
+          }`}
+        >
           {card.tagline}
         </p>
       </div>
 
       <div className="flex justify-end mt-3">
         <span className={`
-          flex h-7 w-7 items-center justify-center rounded-full
-          ${isBlue ? 'bg-white/20 group-hover:bg-white/30' : 'bg-white/15 group-hover:bg-white/25'}
-          transition-colors
+          flex h-7 w-7 items-center justify-center rounded-full transition-colors
+          ${isBlue
+            ? 'bg-onPrimary/20 group-hover:bg-onPrimary/30'
+            : 'bg-onNavy/15 group-hover:bg-onNavy/25'}
         `}>
-          <i className="ph ph-arrow-right text-sm text-white" aria-hidden="true" />
+          <i
+            className={`ph ph-arrow-right text-sm ${isBlue ? 'text-onPrimary' : 'text-onNavy'}`}
+            aria-hidden="true"
+          />
         </span>
       </div>
     </button>
@@ -92,7 +107,7 @@ export function HomeTab({ onNavigate }: HomeTabProps) {
   return (
     <div className="flex flex-col gap-6 pt-2">
       <div>
-        <h1 className="text-xl font-extrabold text-navy tracking-tight mb-4">
+        <h1 className="font-heading text-xl font-extrabold text-navy tracking-tight mb-4">
           Wat wil je doen?
         </h1>
         <div className="grid grid-cols-2 gap-3">

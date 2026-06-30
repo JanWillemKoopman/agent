@@ -24,7 +24,7 @@ function DataStatusDot({ status, isRefreshing }: { status: DealStatus | null | u
   if (hasDataToday) {
     return (
       <span
-        className="absolute top-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-surface bg-emerald-500"
+        className="absolute top-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-surface bg-success"
         aria-hidden="true"
       />
     );
@@ -75,10 +75,10 @@ export function Header({
   return (
     <header className="shrink-0 sticky top-0 z-30 flex items-center justify-between border-b border-line bg-surface px-4 py-3">
       <div className="flex items-center gap-2.5">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-ahBlue text-white">
+        <span className="flex h-8 w-8 items-center justify-center rounded-tile bg-ahBlue text-onPrimary">
           <i className="ph-fill ph-cooking-pot text-lg" aria-hidden="true" />
         </span>
-        <span className="text-lg font-extrabold tracking-tight text-navy">
+        <span className="font-heading text-lg font-extrabold tracking-tight text-navy">
           FamApp
         </span>
       </div>
@@ -89,7 +89,7 @@ export function Header({
           type="button"
           onClick={onDataRefreshClick}
           aria-label="Aanbiedingen data"
-          className="relative flex h-9 w-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-line hover:text-navy"
+          className="relative flex h-9 w-9 items-center justify-center rounded-tile text-muted transition-colors hover:bg-line hover:text-navy"
         >
           {isRefreshing ? (
             <i className="ph ph-circle-notch animate-spin text-xl text-ahBlue" aria-hidden="true" />
@@ -103,7 +103,7 @@ export function Header({
           type="button"
           onClick={onSettingsClick}
           aria-label="Instellingen"
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-line hover:text-navy"
+          className="flex h-9 w-9 items-center justify-center rounded-tile text-muted transition-colors hover:bg-line hover:text-navy"
         >
           <i className="ph ph-sliders-horizontal text-xl" aria-hidden="true" />
         </button>

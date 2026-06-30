@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { SUPPORTED_STORES } from '@/lib/types';
 import { fetchSettings, saveSettings } from '@/lib/api';
+import { ThemeSwitcher } from './ThemeSwitcher';
 
 export function SettingsPage() {
   const [stores, setStores] = useState<string[]>(['Albert Heijn']);
@@ -81,7 +82,7 @@ export function SettingsPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="px-1 text-xl font-extrabold text-navy">Instellingen</h1>
+      <h1 className="px-1 font-heading text-xl font-extrabold text-navy">Instellingen</h1>
 
       <section className="space-y-3 rounded-card bg-surface p-4 shadow-card">
         <h2 className="text-sm font-semibold text-ink">Supermarkten</h2>
@@ -97,7 +98,7 @@ export function SettingsPage() {
                 className={`flex cursor-pointer items-center gap-3 rounded-card border px-3 py-3 transition-colors ${
                   active
                     ? 'border-ahBlue bg-ahBlueSoft'
-                    : 'border-line bg-white'
+                    : 'border-line bg-surface'
                 }`}
               >
                 <input
@@ -184,7 +185,7 @@ export function SettingsPage() {
           <button
             type="button"
             onClick={addIngredient}
-            className="rounded-card bg-ahBlue px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-ahBlueDark"
+            className="rounded-card bg-ahBlue px-4 py-2.5 text-sm font-semibold text-onPrimary transition-colors hover:bg-ahBlueDark"
           >
             Toevoegen
           </button>
@@ -195,14 +196,14 @@ export function SettingsPage() {
             {excludedIngredients.map((ingredient) => (
               <li
                 key={ingredient}
-                className="flex items-center gap-1.5 rounded-pill border border-line bg-white px-3 py-1 text-sm text-ink"
+                className="flex items-center gap-1.5 rounded-pill border border-line bg-surface px-3 py-1 text-sm text-ink"
               >
                 {ingredient}
                 <button
                   type="button"
                   onClick={() => removeIngredient(ingredient)}
                   aria-label={`Verwijder ${ingredient}`}
-                  className="ml-0.5 text-muted transition-colors hover:text-red-500"
+                  className="ml-0.5 text-muted transition-colors hover:text-danger"
                 >
                   <i className="ph ph-x" aria-hidden="true" />
                 </button>
@@ -212,7 +213,7 @@ export function SettingsPage() {
         )}
       </section>
 
-      {error && <p className="px-1 text-sm text-red-600">{error}</p>}
+      {error && <p className="px-1 text-sm text-danger">{error}</p>}
       {savedOk && (
         <p className="flex items-center gap-1.5 px-1 text-sm text-ahBlueDark">
           <i className="ph-fill ph-check-circle" aria-hidden="true" />
@@ -224,10 +225,13 @@ export function SettingsPage() {
         type="button"
         onClick={handleSave}
         disabled={saving}
-        className="flex w-full items-center justify-center gap-2 rounded-pill bg-ahBlue py-3 text-sm font-semibold text-white transition-colors hover:bg-ahBlueDark disabled:opacity-60"
+        className="flex w-full items-center justify-center gap-2 rounded-pill bg-ahBlue py-3 text-sm font-semibold text-onPrimary transition-colors hover:bg-ahBlueDark disabled:opacity-60"
       >
         {saving ? 'Opslaan…' : 'Instellingen opslaan'}
       </button>
+
+      {/* Template/thema-kiezer — onderaan de instellingen. */}
+      <ThemeSwitcher />
     </div>
   );
 }

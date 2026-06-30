@@ -23,7 +23,7 @@ interface ErrorBoxProps {
 
 const Intro = () => (
   <div className="space-y-3 text-center">
-    <h1 className="text-2xl font-extrabold leading-tight text-navy">
+    <h1 className="font-heading text-2xl font-extrabold leading-tight text-navy">
       Wat eten we vandaag?
     </h1>
     <p className="mx-auto max-w-md text-sm leading-relaxed text-muted">
@@ -37,7 +37,7 @@ const Intro = () => (
 
 function NoDataBanner({ onOpenDataRefresh }: { onOpenDataRefresh: () => void }) {
   return (
-    <div className="rounded-card border border-kortingOrange/30 bg-[#fff8ee] p-4">
+    <div className="rounded-card border border-kortingOrange/30 bg-kortingOrange/10 p-4">
       <div className="flex items-start gap-3">
         <i className="ph-fill ph-warning-circle mt-0.5 shrink-0 text-xl text-kortingOrange" aria-hidden="true" />
         <div className="space-y-2">
@@ -49,7 +49,7 @@ function NoDataBanner({ onOpenDataRefresh }: { onOpenDataRefresh: () => void }) 
           <button
             type="button"
             onClick={onOpenDataRefresh}
-            className="flex items-center gap-1.5 rounded-pill bg-kortingOrange px-4 py-2 text-xs font-bold text-white hover:bg-[#d97b00] transition-colors active:scale-[0.98]"
+            className="flex items-center gap-1.5 rounded-pill bg-kortingOrange px-4 py-2 text-xs font-bold text-onAccent hover:bg-kortingOrangeDark transition-colors active:scale-[0.98]"
           >
             <i className="ph ph-cloud-arrow-down text-sm" aria-hidden="true" />
             Aanbiedingen ophalen
@@ -119,7 +119,7 @@ export function RecipeTab({
 
 function ErrorBox({ message, onRetry }: ErrorBoxProps) {
   return (
-    <div className="rounded-card border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+    <div className="rounded-card border border-danger/30 bg-dangerSoft p-4 text-sm text-dangerInk">
       <div className="flex items-start gap-2">
         <i className="ph-fill ph-warning-circle mt-0.5 shrink-0 text-base" aria-hidden="true" />
         <span className="leading-snug">{message}</span>
@@ -128,7 +128,7 @@ function ErrorBox({ message, onRetry }: ErrorBoxProps) {
         <button
           type="button"
           onClick={onRetry}
-          className="mt-3 flex items-center gap-1.5 rounded-pill bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-200 transition-colors"
+          className="mt-3 flex items-center gap-1.5 rounded-pill bg-danger/15 px-3 py-1.5 text-xs font-semibold text-dangerInk hover:bg-danger/25 transition-colors"
         >
           <i className="ph ph-arrow-clockwise text-sm" aria-hidden="true" />
           Probeer opnieuw

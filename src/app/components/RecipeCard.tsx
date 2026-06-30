@@ -24,18 +24,18 @@ export function RecipeCard({ recipe, onOpen }: RecipeCardProps) {
     >
       <div className="flex flex-wrap items-center gap-1.5">
         {recipe.korting_deal_count > 0 && (
-          <span className="inline-flex items-center gap-1 rounded-md bg-kortingOrange px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white">
+          <span className="inline-flex items-center gap-1 rounded-badge bg-kortingOrange px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-onAccent">
             <i className="ph-fill ph-tag text-xs" aria-hidden="true" />
             {recipe.korting_deal_count}x korting
           </span>
         )}
-        <span className="inline-flex items-center gap-1 rounded-md bg-appBg px-2 py-0.5 text-[11px] font-medium text-muted">
+        <span className="inline-flex items-center gap-1 rounded-badge bg-appBg px-2 py-0.5 text-[11px] font-medium text-muted">
           <i className="ph ph-users-three text-xs" aria-hidden="true" />
           {recipe.servings || 4} pers.
         </span>
       </div>
 
-      <h3 className="text-base font-bold leading-snug text-navy">{recipe.recipe_name}</h3>
+      <h3 className="font-heading text-base font-bold leading-snug text-navy">{recipe.recipe_name}</h3>
       <p className="line-clamp-2 text-sm text-muted">{recipe.description}</p>
 
       <div className="mt-1 flex items-end justify-between">
