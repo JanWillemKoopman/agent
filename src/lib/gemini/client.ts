@@ -2,15 +2,9 @@ import { GoogleGenAI } from '@google/genai';
 
 // Centrale model-ids.
 // - FLASH_LITE: snel + goedkoop — voor Shoppers (stap 4).
-// - CHEF:       culinaire kwaliteit — voor Chefs (stap 2) en Critic (stap 3).
-// - FORAGER:    grounded search (stap 1) — gemini-3.5-flash.
-//
-// Winkels worden serieel verwerkt (één tegelijk) zodat de ~25 parallelle calls
-// per winkel binnen het RPM-quotum blijven. Retry met backoff vangt incidentele
-// 429s op.
+// - CHEF:       culinaire kwaliteit — voor Chefs (stap 2), Critic (stap 3) en Forager (stap 1).
 export const GEMINI_FLASH_LITE = 'gemini-2.5-flash-lite';
 export const GEMINI_CHEF = 'gemini-2.5-flash';
-export const GEMINI_FORAGER = 'gemini-3.5-flash';
 
 let client: GoogleGenAI | null = null;
 
