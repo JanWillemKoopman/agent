@@ -5,17 +5,10 @@ import { formatEuro } from '@/lib/format';
 
 interface RecipeCardProps {
   recipe: FinalRecipe;
-  saved: boolean;
-  onToggleSave: (recipe: FinalRecipe) => void;
   onOpen: (recipe: FinalRecipe) => void;
 }
 
-export function RecipeCard({
-  recipe,
-  saved,
-  onToggleSave,
-  onOpen,
-}: RecipeCardProps) {
+export function RecipeCard({ recipe, onOpen }: RecipeCardProps) {
   return (
     <article
       role="button"
@@ -29,41 +22,20 @@ export function RecipeCard({
       }}
       className="flex cursor-pointer flex-col gap-2 rounded-card bg-surface p-4 text-left shadow-card transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-ahBlue"
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-1.5">
-          {recipe.korting_deal_count > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-md bg-kortingOrange px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white">
-              <i className="ph-fill ph-tag text-xs" aria-hidden="true" />
-              {recipe.korting_deal_count}x korting
-            </span>
-          )}
-          <span className="inline-flex items-center gap-1 rounded-md bg-appBg px-2 py-0.5 text-[11px] font-medium text-muted">
-            <i className="ph ph-users-three text-xs" aria-hidden="true" />
-            {recipe.servings || 4} pers.
+      <div className="flex flex-wrap items-center gap-1.5">
+        {recipe.korting_deal_count > 0 && (
+          <span className="inline-flex items-center gap-1 rounded-md bg-kortingOrange px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white">
+            <i className="ph-fill ph-tag text-xs" aria-hidden="true" />
+            {recipe.korting_deal_count}x korting
           </span>
-        </div>
-
-        <button
-          type="button"
-          aria-label={saved ? 'Verwijder uit favorieten' : 'Bewaar recept'}
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleSave(recipe);
-          }}
-          className="-mr-1 -mt-1 flex h-9 w-9 items-center justify-center rounded-full text-ink transition-colors hover:bg-appBg"
-        >
-          <i
-            className={`${
-              saved ? 'ph-fill ph-heart text-ahBlue' : 'ph ph-heart text-muted'
-            } text-xl`}
-            aria-hidden="true"
-          />
-        </button>
+        )}
+        <span className="inline-flex items-center gap-1 rounded-md bg-appBg px-2 py-0.5 text-[11px] font-medium text-muted">
+          <i className="ph ph-users-three text-xs" aria-hidden="true" />
+          {recipe.servings || 4} pers.
+        </span>
       </div>
 
-      <h3 className="text-base font-bold leading-snug text-navy">
-        {recipe.recipe_name}
-      </h3>
+      <h3 className="text-base font-bold leading-snug text-navy">{recipe.recipe_name}</h3>
       <p className="line-clamp-2 text-sm text-muted">{recipe.description}</p>
 
       <div className="mt-1 flex items-end justify-between">

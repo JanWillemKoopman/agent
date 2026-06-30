@@ -11,9 +11,6 @@ interface RecipeTabProps {
   recipes: FinalRecipe[];
   error: string | null;
   onGenerate: () => void;
-  savedRecipes: FinalRecipe[];
-  savedTitles: Set<string>;
-  onToggleSave: (recipe: FinalRecipe) => void;
   onOpen: (recipe: FinalRecipe) => void;
   hasDataToday: boolean;
   onOpenDataRefresh: () => void;
@@ -69,18 +66,12 @@ export function RecipeTab({
   recipes,
   error,
   onGenerate,
-  savedRecipes,
-  savedTitles,
-  onToggleSave,
   onOpen,
   hasDataToday,
   onOpenDataRefresh,
 }: RecipeTabProps) {
   const isEmpty =
-    !isGenerating &&
-    recipes.length === 0 &&
-    savedRecipes.length === 0 &&
-    statusLines.length === 0;
+    !isGenerating && recipes.length === 0 && statusLines.length === 0;
 
   const handleGenerate = () => {
     if (!hasDataToday) {
@@ -110,25 +101,18 @@ export function RecipeTab({
 
       <StatusStream lines={statusLines} isGenerating={isGenerating} />
 
-      {error && <ErrorBox message={error} onRetry={!isGenerating && hasDataToday ? onGenerate : undefined} />}
+      {error && (
+        <ErrorBox
+          message={error}
+          onRetry={!isGenerating && hasDataToday ? onGenerate : undefined}
+        />
+      )}
 
       <RecipeGrid
         recipes={recipes}
-        savedTitles={savedTitles}
-        onToggleSave={onToggleSave}
         onOpen={onOpen}
         title={recipes.length > 0 ? 'Voorgestelde recepten' : undefined}
       />
-
-      {recipes.length === 0 && savedRecipes.length > 0 && (
-        <RecipeGrid
-          recipes={savedRecipes}
-          savedTitles={savedTitles}
-          onToggleSave={onToggleSave}
-          onOpen={onOpen}
-          title="Bewaarde recepten"
-        />
-      )}
     </div>
   );
 }
