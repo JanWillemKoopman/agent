@@ -10,7 +10,7 @@ import { getCachedDealsOrForage } from './deals-cache';
 import { calculateRecipes, findMissingPriceIngredients } from './calculator';
 import type { Deal, RecipeConcept, PriceMap, FinalRecipe } from '../types';
 
-export type Emit = (step: number, message: string) => void;
+export type Emit = (step: number, message: string) => Promise<void>;
 
 function chunk<T>(arr: T[], size: number): T[][] {
   const out: T[][] = [];
@@ -38,7 +38,7 @@ export async function runKitchenBrigade(
     stores.length > 1
       ? stores.slice(0, -1).join(', ') + ' en ' + stores[stores.length - 1]
       : stores[0];
-  emit(1, `Aanbiedingen ophalen bij ${storeList}…`);
+  await emit(1, `Aanbiedingen ophalen bij ${storeList}…`);
   const deals: Deal[] = await getCachedDealsOrForage(stores);
 
   if (deals.length === 0) {
@@ -46,7 +46,7 @@ export async function runKitchenBrigade(
   }
 
   // --- Stap 2: The Chefs ----------------------------------------------------
-  emit(2, `Recepten bedenken met ${deals.length} actuele deals…`);
+  await emit(2, `Recepten bedenken met ${deals.length} actuele deals…`);
   const chefResults = await Promise.allSettled(
     CHEF_PERSONAS.map((p) => chefRecipes(p, deals, excludedIngredients))
   );
@@ -61,7 +61,7 @@ export async function runKitchenBrigade(
   }
 
   // --- Stap 3: The Critic ---------------------------------------------------
-  emit(3, `Kwaliteit controleren van ${concepts.length} receptideeën…`);
+  await emit(3, `Kwaliteit controleren van ${concepts.length} receptideeën…`);
   let bestConcepts: RecipeConcept[];
   try {
     bestConcepts = await criticFilter(concepts);
@@ -75,7 +75,7 @@ export async function runKitchenBrigade(
   const uniqueIngredients = new Set(
     bestConcepts.flatMap((c) => c.required_standard_ingredients ?? [])
   );
-  emit(
+  await emit(
     4,
     `Prijzen ophalen voor ${uniqueIngredients.size} ingrediënten (${bestConcepts.length} recepten)…`
   );
@@ -99,7 +99,7 @@ export async function runKitchenBrigade(
   // staan; we vullen alleen de gaten.
   const missing = findMissingPriceIngredients(bestConcepts, prices);
   if (missing.length > 0) {
-    emit(4, `Ontbrekende prijzen aanvullen voor ${missing.length} ingrediënten…`);
+    await emit(4, `Ontbrekende prijzen aanvullen voor ${missing.length} ingrediënten…`);
     try {
       const extra = await shopMissingPrices(missing, stores);
       for (const [key, value] of Object.entries(extra)) {
@@ -117,6 +117,6 @@ export async function runKitchenBrigade(
     minPricePp === 0 && maxPricePp >= 100
       ? 'alle budgetten'
       : `€ ${minPricePp.toFixed(0)}–${maxPricePp.toFixed(0)} p.p.`;
-  emit(5, `Recepten doorrekenen en filteren op ${budgetLabel}…`);
+  await emit(5, `Recepten doorrekenen en filteren op ${budgetLabel}…`);
   return calculateRecipes(bestConcepts, deals, prices, minPricePp, maxPricePp, excludedIngredients);
 }

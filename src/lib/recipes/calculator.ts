@@ -207,16 +207,23 @@ export function calculateRecipes(
 ): FinalRecipe[] {
   return concepts
     .map((c) => priceRecipe(c, deals, prices))
-    .filter(
-      (r) =>
-        // Alleen recepten met een VOLLEDIGE prijs tonen: een onvolledig totaal
-        // is te laag en zou het recept onterecht binnen het budget kunnen
-        // laten vallen.
-        r.price_complete !== false &&
-        r.price_per_person >= minPricePp &&
-        r.price_per_person <= maxPricePp &&
-        r.total_price > 0 &&
-        !containsExcluded(r, excludedIngredients)
-    )
+    .filter((r) => {
+      if (r.total_price <= 0) return false;
+      if (containsExcluded(r, excludedIngredients)) return false;
+
+      // Voor onvolledige recepten (ontbrekende prijzen) gebruiken we een
+      // conservatieve schatting zodat ze niet onterecht te goedkoop lijken.
+      // We schalen de bekende prijs omhoog naar rato van de ontbrekende
+      // ingrediënten zodat de budgetcheck realistischer is.
+      if (r.price_complete === false) {
+        const total = r.ingredients.length;
+        const known = r.ingredients.filter((i) => i.price !== null).length;
+        const scaleFactor = known > 0 ? total / known : 1;
+        const estimatedPp = r.price_per_person * scaleFactor;
+        return estimatedPp >= minPricePp && estimatedPp <= maxPricePp * 1.5;
+      }
+
+      return r.price_per_person >= minPricePp && r.price_per_person <= maxPricePp;
+    })
     .sort((a, b) => a.price_per_person - b.price_per_person);
 }

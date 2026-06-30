@@ -41,9 +41,13 @@ export function RecipeCard({ recipe, onOpen }: RecipeCardProps) {
       <div className="mt-1 flex items-end justify-between">
         <div>
           <span className="text-xl font-extrabold text-ink">
+            {recipe.price_complete === false && <span className="text-base text-muted">~</span>}
             {formatEuro(recipe.price_per_person)}
           </span>
           <span className="ml-1 text-xs text-muted">p.p.</span>
+          {recipe.price_complete === false && (
+            <span className="ml-1 text-[10px] text-muted">(richtprijs)</span>
+          )}
         </div>
         {recipe.supermarkets.length > 0 && (
           <span className="inline-flex items-center gap-1 text-xs text-muted">

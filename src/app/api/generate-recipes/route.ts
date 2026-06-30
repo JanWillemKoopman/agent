@@ -68,10 +68,11 @@ export async function POST(req: Request) {
   // Draai de pipeline na de response, losgekoppeld van de client-verbinding.
   after(async () => {
     const statusLines: StatusEvent[] = [];
-    const emit = (step: number, message: string) => {
+    const emit = async (step: number, message: string) => {
       statusLines.push({ step, message });
-      // Fire-and-forget: voortgang wegschrijven mag de pipeline niet vertragen.
-      void service
+      // Wacht op de DB-write zodat de client dit stap via polling kan zien
+      // voordat de pipeline naar de volgende stap gaat.
+      await service
         .from('recipe_generation_jobs')
         .update({ step, status_lines: statusLines, updated_at: new Date().toISOString() })
         .eq('id', jobId);
