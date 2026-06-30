@@ -1,21 +1,34 @@
-import { getSupabaseServerClient, getAccessTokenFromRequest } from '@/lib/supabase/server';
+import { after } from 'next/server';
+import {
+  getSupabaseServerClient,
+  getSupabaseServiceClient,
+  getAccessTokenFromRequest,
+} from '@/lib/supabase/server';
 import { runKitchenBrigade } from '@/lib/recipes/pipeline';
-import { sseEvent, sseComment } from '@/lib/sse';
-import type { UserSettings } from '@/lib/types';
+import type { UserSettings, StatusEvent } from '@/lib/types';
 
-// Edge runtime: houdt de SSE-stream open tijdens de AI-stappen en omzeilt de
-// 10s serverless-timeout van het gratis Vercel-account. Edge gebruikt globale
-// web-API's (fetch, TextEncoder, ReadableStream) — geen Node-specifieke calls.
+// Edge runtime: globale web-API's (fetch, TextEncoder), nodig voor de AI-stappen.
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
+// Een job die langer dan dit niet meer is bijgewerkt, beschouwen we als gestrand
+// (functie voortijdig afgebroken). De client krijgt dan een nette retry-melding.
+const STALE_MS = 3 * 60 * 1000;
+
+/**
+ * POST — start een achtergrond-generatie en geef direct een jobId terug.
+ *
+ * De pipeline draait via `after()` LOS van deze request. Daardoor blijft hij
+ * doorlopen en wordt het resultaat in de database vastgelegd, ook als de browser
+ * de verbinding verbreekt (scherm op slot / app naar achtergrond). De client
+ * pollt vervolgens GET ?jobId=... en pikt het resultaat op zodra hij terugkomt.
+ */
 export async function POST(req: Request) {
   const accessToken = getAccessTokenFromRequest(req);
   if (!accessToken) {
     return new Response('Niet geautoriseerd', { status: 401 });
   }
 
-  // Haal de instellingen van de gebruiker op (RLS via JWT).
   const supabase = getSupabaseServerClient(accessToken);
   const {
     data: { user },
@@ -37,47 +50,108 @@ export async function POST(req: Request) {
   const maxPricePp = settings?.max_price_pp ?? 100;
   const excludedIngredients = settings?.excluded_ingredients ?? [];
 
-  const stream = new ReadableStream({
-    async start(controller) {
-      const emit = (step: number, message: string) => {
-        controller.enqueue(sseEvent('status', { step, message }));
-      };
+  // Maak de job-rij aan (service-role: omzeilt RLS).
+  const service = getSupabaseServiceClient();
+  const { data: job, error: insertErr } = await service
+    .from('recipe_generation_jobs')
+    .insert({ user_id: user.id, status: 'running', step: 0, status_lines: [] })
+    .select('id')
+    .single();
 
-      // Keep-alive: stuur elke 12s een SSE-comment zodat mobiele browsers
-      // (Safari/iOS) de verbinding niet verbreken bij een lang-lopende stap.
-      let pingInterval: ReturnType<typeof setInterval> | null = setInterval(() => {
-        try {
-          controller.enqueue(sseComment());
-        } catch {
-          if (pingInterval) clearInterval(pingInterval);
-        }
-      }, 12_000);
+  if (insertErr || !job) {
+    console.error('Job aanmaken mislukt:', insertErr);
+    return new Response('Kon de generatie niet starten.', { status: 500 });
+  }
 
-      try {
-        const recipes = await runKitchenBrigade(stores, minPricePp, maxPricePp, emit, excludedIngredients);
-        controller.enqueue(sseEvent('result', { recipes }));
-      } catch (err) {
-        console.error('Pipeline-fout:', err);
-        controller.enqueue(
-          sseEvent('error', {
-            message:
-              err instanceof Error ? err.message : 'Onbekende fout in de pipeline.',
-          })
-        );
-      } finally {
-        if (pingInterval) clearInterval(pingInterval);
-        controller.enqueue(sseEvent('done', {}));
-        controller.close();
-      }
-    },
+  const jobId = job.id as string;
+
+  // Draai de pipeline na de response, losgekoppeld van de client-verbinding.
+  after(async () => {
+    const statusLines: StatusEvent[] = [];
+    const emit = (step: number, message: string) => {
+      statusLines.push({ step, message });
+      // Fire-and-forget: voortgang wegschrijven mag de pipeline niet vertragen.
+      void service
+        .from('recipe_generation_jobs')
+        .update({ step, status_lines: statusLines, updated_at: new Date().toISOString() })
+        .eq('id', jobId);
+    };
+
+    try {
+      const recipes = await runKitchenBrigade(
+        stores,
+        minPricePp,
+        maxPricePp,
+        emit,
+        excludedIngredients
+      );
+      await service
+        .from('recipe_generation_jobs')
+        .update({
+          status: 'done',
+          result_json: recipes,
+          status_lines: statusLines,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', jobId);
+    } catch (err) {
+      console.error('Pipeline-fout:', err);
+      await service
+        .from('recipe_generation_jobs')
+        .update({
+          status: 'error',
+          error: err instanceof Error ? err.message : 'Onbekende fout in de pipeline.',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', jobId);
+    }
   });
 
-  return new Response(stream, {
-    headers: {
-      'Content-Type': 'text/event-stream; charset=utf-8',
-      'Cache-Control': 'no-cache, no-transform',
-      Connection: 'keep-alive',
-      'X-Accel-Buffering': 'no',
-    },
+  return Response.json({ jobId });
+}
+
+/**
+ * GET ?jobId=... — geeft de huidige status van een job terug zodat de client
+ * kan pollen. Een job die te lang stil ligt (functie afgebroken) wordt als
+ * mislukt gerapporteerd zodat de gebruiker opnieuw kan proberen.
+ */
+export async function GET(req: Request) {
+  const accessToken = getAccessTokenFromRequest(req);
+  if (!accessToken) {
+    return new Response('Niet geautoriseerd', { status: 401 });
+  }
+
+  const jobId = new URL(req.url).searchParams.get('jobId');
+  if (!jobId) {
+    return new Response('jobId is verplicht', { status: 400 });
+  }
+
+  // Lezen via de gebruiker-client: RLS zorgt dat men alleen eigen jobs ziet.
+  const supabase = getSupabaseServerClient(accessToken);
+  const { data: job, error } = await supabase
+    .from('recipe_generation_jobs')
+    .select('status, step, status_lines, result_json, error, updated_at')
+    .eq('id', jobId)
+    .maybeSingle();
+
+  if (error) return new Response(error.message, { status: 500 });
+  if (!job) return new Response('Job niet gevonden', { status: 404 });
+
+  let status = job.status as 'running' | 'done' | 'error';
+  let errorMsg = job.error as string | null;
+
+  // Gestrande job: lang niet bijgewerkt terwijl hij 'running' is.
+  if (status === 'running' && Date.now() - new Date(job.updated_at).getTime() > STALE_MS) {
+    status = 'error';
+    errorMsg =
+      'Het genereren is onverwacht gestopt. Probeer het opnieuw.';
+  }
+
+  return Response.json({
+    status,
+    step: job.step,
+    statusLines: job.status_lines ?? [],
+    recipes: job.result_json ?? null,
+    error: errorMsg,
   });
 }
