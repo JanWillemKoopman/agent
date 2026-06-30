@@ -187,38 +187,16 @@ function normalize(s: string): string {
     .trim();
 }
 
-/**
- * Fuzzy similarity: twee productnamen zijn hetzelfde als de Jaccard-overlap
- * van betekenisvolle woorden (>3 tekens) groter dan 0.65 is, of als de ene
- * naam de andere bevat (voor afgekorte variant-namen).
- */
-function areSimilar(a: string, b: string): boolean {
-  const na = normalize(a);
-  const nb = normalize(b);
-  if (na === nb) return true;
-
-  // Containment check (bv. "AH Kipfilet" ↔ "AH Kipfilet 600g")
-  const shorter = na.length < nb.length ? na : nb;
-  const longer = na.length < nb.length ? nb : na;
-  if (longer.includes(shorter) && shorter.length > 6) return true;
-
-  // Jaccard over woorden langer dan 3 tekens
-  const wordsA = new Set(na.split(' ').filter((w) => w.length > 3));
-  const wordsB = new Set(nb.split(' ').filter((w) => w.length > 3));
-  if (wordsA.size === 0 || wordsB.size === 0) return false;
-
-  const intersection = [...wordsA].filter((w) => wordsB.has(w));
-  const union = new Set([...wordsA, ...wordsB]);
-  return intersection.length / union.size > 0.65;
-}
 
 function deduplicateDeals(deals: Deal[]): Deal[] {
+  const seen = new Set<string>();
   const unique: Deal[] = [];
   for (const deal of deals) {
-    const isDuplicate = unique.some((existing) =>
-      areSimilar(existing.product_name, deal.product_name)
-    );
-    if (!isDuplicate) unique.push(deal);
+    const key = `${deal.supermarket}||${normalize(deal.product_name)}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      unique.push(deal);
+    }
   }
   return unique;
 }

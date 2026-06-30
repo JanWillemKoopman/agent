@@ -1,8 +1,8 @@
 import { GoogleGenAI } from '@google/genai';
 
 // Centrale model-ids. Hybride opzet:
-// - FLASH_LITE: snel + goedkoop — voor Foragers (stap 1) en Shoppers (stap 4).
-// - CHEF:       culinaire kwaliteit — voor Chefs (stap 2) en Critic (stap 3).
+// - FLASH_LITE: snel + goedkoop — voor Shoppers (stap 4).
+// - CHEF:       culinaire kwaliteit — voor Foragers (stap 1), Chefs (stap 2) en Critic (stap 3).
 //
 // Gepind op de stabiele 2.5-modellen. Eerder stonden hier `gemini-3.1-flash-lite`
 // en `gemini-3.5-flash`; die werden door de API afgewezen (geen toegang/quota voor
