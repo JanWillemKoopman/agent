@@ -99,7 +99,9 @@ export function RecipeTab({
       )}
       <GenerateButton onClick={handleGenerate} isGenerating={isGenerating} />
 
-      <StatusStream lines={statusLines} isGenerating={isGenerating} />
+      {recipes.length === 0 && (
+        <StatusStream lines={statusLines} isGenerating={isGenerating} />
+      )}
 
       {error && (
         <ErrorBox
@@ -111,7 +113,7 @@ export function RecipeTab({
       <RecipeGrid
         recipes={recipes}
         onOpen={onOpen}
-        title={recipes.length > 0 ? 'Voorgestelde recepten' : undefined}
+        title={recipes.length > 0 ? 'Samengestelde recepten' : undefined}
       />
     </div>
   );

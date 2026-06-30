@@ -179,8 +179,7 @@ export function RecipeDetail({ recipe, onClose }: RecipeDetailProps) {
               type="button"
               onClick={handleShare}
               disabled={sharing}
-              className="flex w-full items-center justify-center gap-2 rounded-pill py-3 text-sm font-semibold transition-colors disabled:opacity-70"
-              style={{ backgroundColor: '#25D366', color: 'white' }}
+              className="flex w-full items-center justify-center gap-2 rounded-pill bg-ahBlue py-3 text-sm font-semibold text-onPrimary transition-colors hover:bg-ahBlueDark disabled:opacity-70"
             >
               {sharing ? (
                 <i className="ph ph-circle-notch animate-spin text-lg" aria-hidden="true" />

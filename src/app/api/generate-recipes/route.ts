@@ -46,8 +46,6 @@ export async function POST(req: Request) {
   const stores = settings?.selected_stores?.length
     ? settings.selected_stores
     : ['Albert Heijn'];
-  const minPricePp = settings?.min_price_pp ?? 0;
-  const maxPricePp = settings?.max_price_pp ?? 100;
   const excludedIngredients = settings?.excluded_ingredients ?? [];
 
   // Maak de job-rij aan (service-role: omzeilt RLS).
@@ -81,8 +79,6 @@ export async function POST(req: Request) {
     try {
       const recipes = await runKitchenBrigade(
         stores,
-        minPricePp,
-        maxPricePp,
         emit,
         excludedIngredients
       );

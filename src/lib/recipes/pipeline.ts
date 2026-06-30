@@ -25,15 +25,10 @@ function chunk<T>(arr: T[], size: number): T[][] {
  */
 export async function runKitchenBrigade(
   stores: string[],
-  minPricePp: number,
-  maxPricePp: number,
   emit: Emit,
   excludedIngredients: string[] = []
 ): Promise<FinalRecipe[]> {
   // --- Stap 1: The Foragers -------------------------------------------------
-  // Leest de aanbiedingen uit de dagcache (gevuld door de achtergrond-scrape bij
-  // sessie-start) en valt per winkel terug op live foraging als die nog niet
-  // klaar of mislukt is.
   const storeList =
     stores.length > 1
       ? stores.slice(0, -1).join(', ') + ' en ' + stores[stores.length - 1]
@@ -47,14 +42,32 @@ export async function runKitchenBrigade(
 
   // --- Stap 2: The Chefs ----------------------------------------------------
   await emit(2, `Recepten bedenken met ${deals.length} actuele deals…`);
-  const chefResults = await Promise.allSettled(
-    CHEF_PERSONAS.map((p) => chefRecipes(p, deals, excludedIngredients))
-  );
-  const concepts: RecipeConcept[] = chefResults.flatMap((r) => {
-    if (r.status === 'fulfilled') return r.value;
-    console.error('Chef faalde:', r.reason);
-    return [];
-  });
+
+  // Queue serialiseert de emit-calls van parallel draaiende chefs zodat DB-writes
+  // niet over elkaar heen schrijven.
+  let emitTail: Promise<void> = Promise.resolve();
+  const enqueueEmit = (fn: () => Promise<void>) => {
+    emitTail = emitTail.then(() => fn());
+  };
+
+  const concepts: RecipeConcept[] = (
+    await Promise.all(
+      CHEF_PERSONAS.map(async (p) => {
+        try {
+          const recipes = await chefRecipes(p, deals, excludedIngredients);
+          enqueueEmit(() => emit(2, `chef_done:${p.id}:${recipes.length}`));
+          return recipes;
+        } catch (err) {
+          console.error('Chef faalde:', err);
+          enqueueEmit(() => emit(2, `chef_done:${p.id}:0`));
+          return [] as RecipeConcept[];
+        }
+      })
+    )
+  ).flat();
+
+  // Wacht tot alle chef-emits naar de DB zijn geschreven.
+  await emitTail;
 
   if (concepts.length === 0) {
     throw new Error('De chefs konden geen recepten bedenken.');
@@ -113,10 +126,6 @@ export async function runKitchenBrigade(
   }
 
   // --- Stap 5: The Calculator (deterministisch) -----------------------------
-  const budgetLabel =
-    minPricePp === 0 && maxPricePp >= 100
-      ? 'alle budgetten'
-      : `€ ${minPricePp.toFixed(0)}–${maxPricePp.toFixed(0)} p.p.`;
-  await emit(5, `Recepten doorrekenen en filteren op ${budgetLabel}…`);
-  return calculateRecipes(bestConcepts, deals, prices, minPricePp, maxPricePp, excludedIngredients);
+  await emit(5, `Recepten doorrekenen en samenstellen…`);
+  return calculateRecipes(bestConcepts, deals, prices, excludedIngredients);
 }
