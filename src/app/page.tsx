@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Header } from './components/Header';
 import { BottomNav, type TabKey } from './components/BottomNav';
 import { HomeTab } from './components/HomeTab';
@@ -22,12 +22,6 @@ import { InstallModal } from './components/InstallModal';
 import { InstallBanner } from './components/InstallBanner';
 import { AppDownloadPage } from './components/AppDownloadPage';
 import { useIOSInstallPrompt } from './hooks/useIOSInstallPrompt';
-import {
-  fetchSavedRecipes,
-  saveRecipe,
-  deleteRecipe,
-  type SavedRecipe,
-} from '@/lib/api';
 import type { FinalRecipe } from '@/lib/types';
 
 export default function Home() {
@@ -54,7 +48,6 @@ export default function Home() {
 function AppShell() {
   const { user } = useAuth();
   const [tab, setTab] = useState<TabKey>('home');
-  const [saved, setSaved] = useState<SavedRecipe[]>([]);
   const [detail, setDetail] = useState<FinalRecipe | null>(null);
   const [showDataRefresh, setShowDataRefresh] = useState(false);
 
@@ -71,10 +64,8 @@ function AppShell() {
   const { statusLines, recipes, isGenerating, error, generate } = useGenerateRecipes();
   const { updateAvailable, refresh } = useServiceWorkerUpdate();
 
-  // Deal-status (laatste DB-run info + productaantallen).
   const { status: dealStatus, refetch: refetchDealStatus } = useDealStatus();
 
-  // Handmatige refresh-stream (SSE per winkel).
   const {
     isRunning: isRefreshing,
     isDone: refreshDone,
@@ -88,30 +79,6 @@ function AppShell() {
   const handleTriggerRefresh = () => {
     const stores = dealStatus?.stores.map((s) => s.store);
     void triggerRefresh(stores);
-  };
-
-  useEffect(() => {
-    fetchSavedRecipes()
-      .then(setSaved)
-      .catch((e) => console.error('Bewaarde recepten laden mislukt:', e));
-  }, []);
-
-  const savedTitles = useMemo(() => new Set(saved.map((s) => s.title)), [saved]);
-  const savedRecipeObjects = useMemo(() => saved.map((s) => s.recipe_json), [saved]);
-
-  const handleToggleSave = async (recipe: FinalRecipe) => {
-    const existing = saved.find((s) => s.title === recipe.recipe_name);
-    try {
-      if (existing) {
-        await deleteRecipe(existing.id);
-        setSaved((prev) => prev.filter((s) => s.id !== existing.id));
-      } else {
-        const created = await saveRecipe(recipe);
-        setSaved((prev) => [created, ...prev]);
-      }
-    } catch (e) {
-      console.error('Bewaren mislukt:', e);
-    }
   };
 
   return (
@@ -162,9 +129,6 @@ function AppShell() {
               recipes={recipes}
               error={error}
               onGenerate={generate}
-              savedRecipes={savedRecipeObjects}
-              savedTitles={savedTitles}
-              onToggleSave={handleToggleSave}
               onOpen={setDetail}
               hasDataToday={dealStatus?.hasDataToday ?? false}
               onOpenDataRefresh={handleOpenDataRefresh}
@@ -181,8 +145,6 @@ function AppShell() {
       {detail && (
         <RecipeDetail
           recipe={detail}
-          saved={savedTitles.has(detail.recipe_name)}
-          onToggleSave={handleToggleSave}
           onClose={() => setDetail(null)}
         />
       )}
