@@ -1,7 +1,18 @@
+// App-versie en build-/deploy-tijdstip. BUILD_TIME wordt vastgelegd op het moment
+// dat Vercel `next build` draait — dat is het deploy-moment. Beide worden als
+// NEXT_PUBLIC_-variabele in de client-bundle geïnlined, zodat de app kan tonen
+// hoe recent hij is bijgewerkt.
+const APP_VERSION = '0.01';
+const BUILD_TIME = new Date().toISOString();
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   compress: true,
+  env: {
+    NEXT_PUBLIC_APP_VERSION: APP_VERSION,
+    NEXT_PUBLIC_BUILD_TIME: BUILD_TIME,
+  },
   headers: async () => [
     {
       // Service worker nooit cachen — browser moet altijd controleren op updates.

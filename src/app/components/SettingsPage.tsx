@@ -73,6 +73,19 @@ export function SettingsPage() {
     return <p className="py-10 text-center text-sm text-muted">Laden…</p>;
   }
 
+  const appVersion = process.env.NEXT_PUBLIC_APP_VERSION;
+  const buildTime = process.env.NEXT_PUBLIC_BUILD_TIME;
+  const buildLabel = buildTime
+    ? new Intl.DateTimeFormat('nl-NL', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'Europe/Amsterdam',
+      }).format(new Date(buildTime))
+    : null;
+
   return (
     <div className="space-y-5">
       <h1 className="px-1 font-heading text-xl font-extrabold text-navy">Instellingen</h1>
@@ -175,6 +188,13 @@ export function SettingsPage() {
       >
         {saving ? 'Opslaan…' : 'Instellingen opslaan'}
       </button>
+
+      {appVersion && (
+        <p className="pt-1 text-center text-[10px] leading-tight text-muted/60">
+          v{appVersion}
+          {buildLabel ? ` · ${buildLabel}` : ''}
+        </p>
+      )}
     </div>
   );
 }
