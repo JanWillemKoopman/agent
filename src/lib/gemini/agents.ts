@@ -5,109 +5,10 @@ import {
   GEMINI_CHEF,
 } from './client';
 import { chefResponseSchema, criticResponseSchema } from './schemas';
+import { forageDeals, STORE_DEALS_URLS, STORE_SEARCH_HINTS } from './forager';
 import type { Deal, RecipeConcept, PriceMap } from '../types';
 
-// ---------------------------------------------------------------------------
-// Stap 1 — The Foragers (Gemini + google_search). Eén exhaustieve loop per winkel.
-// ---------------------------------------------------------------------------
-
-const STORE_DEALS_URLS: Record<string, string> = {
-  'Albert Heijn': 'https://www.ah.nl/bonus',
-  'Jumbo': 'https://www.jumbo.com/aanbiedingen/nu',
-  'Aldi': 'https://www.aldi.nl/aanbiedingen-deze-week.html',
-  // Plus en Lidl blokkeren directe scraping — Gemini zoekt deze via Google Search.
-};
-
-const MAX_FORAGER_ITERATIONS = 5;
-
-function normalize(s: string): string {
-  return s.toLowerCase().trim();
-}
-
-function buildForagerPrompt(
-  store: string,
-  urlHint: string,
-  alreadyFound: string[]
-): string {
-  const exclusion =
-    alreadyFound.length > 0
-      ? `\n\nDe volgende producten heb je al gevonden — geef die NIET nogmaals terug:\n${alreadyFound.join(', ')}\n\nZoek uitsluitend naar ANDERE aanbiedingen die we nog niet hebben.`
-      : '';
-
-  return `Zoek naar de top 15 beste actuele supermarktaanbiedingen van deze week voor ${store} in Nederland, specifiek in de categorieën verse groenten, vlees, vis en vegetarische vervangers.
-
-${urlHint}${exclusion}
-
-Geef de resultaten UITSLUITEND terug als een geldige JSON array (zonder uitleg, zonder markdown) waarin elk element deze velden heeft:
-- "product_name" (string: de officiële productnaam zoals vermeld in de supermarkt, inclusief merk en gewicht/volume indien van toepassing — bv. "AH Kipfilet 600g", "Jumbo Halfvolle melk 1L", "Aldi Verse zalm 2 stuks 300g", "Plus Biologische spinazie 200g")
-- "deal_type" (string: exact één van: "single", "bogo", "multi_buy", "percentage_off")
-  • single = losse prijs-aanbieding (bv. "nu €1,99")
-  • bogo = 2e gratis (koop 2, betaal 1)
-  • multi_buy = bundeldeal (bv. "2 voor €5", "3 voor €4")
-  • percentage_off = procentuele korting (bv. "50% korting")
-- "min_quantity" (number: minimaal te kopen stuks om de deal te krijgen; 1 bij single of percentage_off, 2 of meer bij bogo/multi_buy)
-- "bundle_price" (number of null: totale kassaprijs voor min_quantity stuks; null bij single of percentage_off)
-  • bogo-voorbeeld: kipfilet normaal €3,99 → bundle_price = 3.99 (je betaalt 1×, krijgt 2)
-  • multi_buy-voorbeeld: "2 zalm voor €5" → bundle_price = 5.00
-- "deal_price" (number: effectieve prijs per eenheid = bundle_price / min_quantity; bij single/percentage_off = de aanbiedings-stukprijs)
-  • bogo-voorbeeld: 3.99 / 2 = 1.995
-  • multi_buy-voorbeeld: 5.00 / 2 = 2.50
-- "original_price" (number of null: reguliere stukprijs vóór de aanbieding, of null als onbekend)
-- "deal_description" (string of null: exacte tekst zoals op de website, bv. "2e gratis", "2 voor €5,00", "50% korting")
-- "supermarket" (string, gebruik exact "${store}")`;
-}
-
-const STORE_SEARCH_HINTS: Record<string, string> = {
-  'Plus':
-    'Zoek via Google Search naar "Plus supermarkt weekaanbiedingen" of "plus.nl aanbiedingen deze week" om de actuele deals te vinden. ' +
-    'Probeer ook de Google-zoekresultaten voor "site:plus.nl aanbiedingen" om directe productvermeldingen te vinden.',
-  'Lidl':
-    'Zoek via Google Search naar de huidige aanbiedingspagina van Lidl Nederland (de URL wijzigt wekelijks, bv. lidl.nl/nl/thema/...). ' +
-    'Probeer ook "Lidl Nederland weekaanbiedingen" of "lidl.nl aanbiedingen" om actuele deals te vinden.',
-};
-
-export async function forageDeals(store: string): Promise<Deal[]> {
-  let urlHint: string;
-  if (STORE_DEALS_URLS[store]) {
-    urlHint = `Raadpleeg de aanbiedingspagina op ${STORE_DEALS_URLS[store]} en gebruik Google Search om de meest actuele aanbiedingen te vinden.`;
-  } else if (STORE_SEARCH_HINTS[store]) {
-    urlHint = STORE_SEARCH_HINTS[store];
-  } else {
-    urlHint = `Zoek via Google Search naar de huidige aanbiedingspagina van ${store} Nederland en haal daar de aanbiedingen vandaan.`;
-  }
-
-  const allDeals: Deal[] = [];
-
-  for (let i = 0; i < MAX_FORAGER_ITERATIONS; i++) {
-    const alreadyFound = allDeals.map((d) => d.product_name);
-    const prompt = buildForagerPrompt(store, urlHint, alreadyFound);
-
-    let batch: Deal[];
-    try {
-      const raw = await generateGroundedJson<Deal[]>({ prompt, model: GEMINI_FLASH_LITE });
-      batch = Array.isArray(raw) ? raw : [];
-    } catch (err) {
-      console.error(`Forager iteratie ${i + 1} voor ${store} faalde:`, err);
-      break;
-    }
-
-    // Normalize and deduplicate against already-collected deals.
-    const newDeals = batch
-      .map((d) => ({ ...d, supermarket: d.supermarket || store }))
-      .filter(
-        (d) =>
-          d.product_name &&
-          !allDeals.some(
-            (existing) => normalize(existing.product_name) === normalize(d.product_name)
-          )
-      );
-
-    if (newDeals.length === 0) break;
-    allDeals.push(...newDeals);
-  }
-
-  return allDeals;
-}
+export { forageDeals };
 
 // ---------------------------------------------------------------------------
 // Stap 2 — The Chefs (Mixture of Experts, geen search). 8 parallelle persona's.
@@ -165,31 +66,43 @@ export async function chefRecipes(
   deals: Deal[],
   excludedIngredients: string[] = []
 ): Promise<RecipeConcept[]> {
-  // Stuur deals als compacte JSON inclusief deal_description zodat chefs
-  // weten hoeveel eenheden minimaal nodig zijn voor de deal.
-  const dealSummary = deals.map((d) => ({
-    product_name: d.product_name,
-    deal_price: d.deal_price,
-    original_price: d.original_price,
-    supermarket: d.supermarket,
-    deal_description: d.deal_description ?? null,
-    min_quantity: d.min_quantity ?? 1,
-  }));
+  // Stuur deals als compacte JSON inclusief deal_type zodat chefs weten
+  // welke soort aanbieding het is en hoeveel eenheden minimaal nodig zijn.
+  const dealSummary = deals.map((d) => {
+    const discountPct =
+      d.original_price && d.original_price > 0
+        ? Math.round((1 - d.deal_price / d.original_price) * 100)
+        : null;
+    return {
+      product_name: d.product_name,
+      deal_price: d.deal_price,
+      original_price: d.original_price,
+      deal_type: d.deal_type,
+      deal_description: d.deal_description ?? null,
+      min_quantity: d.min_quantity ?? 1,
+      supermarket: d.supermarket,
+      discount_pct: discountPct,
+    };
+  });
 
   const exclusionNote =
     excludedIngredients.length > 0
       ? `\n\nBELANGRIJK: gebruik NOOIT de volgende ingrediënten — verwerk ze niet in recepten, ook niet als bijgerecht of optionele toevoeging:\n${excludedIngredients.map((i) => `- ${i}`).join('\n')}\n`
       : '';
 
-  const prompt = `Hier is de complete lijst met huidige supermarktaanbiedingen (JSON):
+  const prompt = `Hier is de complete lijst met actuele supermarktaanbiedingen (${dealSummary.length} deals, JSON):
 ${JSON.stringify(dealSummary)}
 
-Let op: bij aanbiedingen met min_quantity > 1 (bv. "2e gratis") moeten recepten minimaal dat aantal eenheden van dat product gebruiken om de deal te benutten.${exclusionNote}
+Instructies:
+- Kies voor jouw 6 recepten de MEEST inspirerende combinaties uit de bovenstaande lijst.
+- Prioriteer aanbiedingen met een hoge discount_pct (beste waarde) of een uniek deal_type.
+- Zorg dat je 6 recepten samen meerdere productcategorieën bestrijken (niet 6× hetzelfde hoofdbestanddeel).
+- Bij min_quantity > 1 (bv. deal_type "bogo" of "multi_buy"): gebruik minimaal dat aantal eenheden van dat product in het recept om de deal te benutten.${exclusionNote}
 
-Bedenk de recepten volgens jouw specialisatie. Geef voor elk recept terug:
+Geef voor elk recept terug:
 - "recipe_name"
 - "description": één korte, smakelijke zin
-- "base_deal_ingredients": exact de product_name-waarden uit de bovenstaande aanbiedingenlijst die je gebruikt — kopieer de volledige officiële naam inclusief merk en gewicht (bv. "AH Kipfilet 600g"), gebruik GEEN verkorte of generieke varianten
+- "base_deal_ingredients": exact de product_name-waarden uit de bovenstaande lijst die je gebruikt — kopieer de volledige officiële naam inclusief merk en gewicht (bv. "AH Kipfilet 600g"), gebruik GEEN verkorte of generieke varianten
 - "required_standard_ingredients": reguliere producten die NIET in de aanbiedingenlijst staan, inclusief de benodigde hoeveelheid voor 4 personen (bv. "500g wortelen", "2 uien", "1L volle melk", "200g pasta") — geen pantry-basisproducten zoals zout, peper, olie of bloem
 - "instructions": de volledige bereiding als array van duidelijke stappen (5 tot 8 korte stappen) voor 4 personen`;
 
@@ -218,11 +131,21 @@ export async function criticFilter(
   const keepPerGroup = Math.ceil(16 / groups.length);
 
   const criticPrompt = (group: RecipeConcept[]) =>
-    `Beoordeel deze lijst met receptconcepten als een professionele chef en diëtist. Verwijder recepten die culinair niet kloppen, ongezond zijn, of te complex zijn voor een thuiskok. Behoud de beste ${keepPerGroup} recepten en geef deze terug.
+    `Beoordeel deze lijst met receptconcepten als een professionele chef en diëtist.
 
-Streef naar diversiteit in de geselecteerde recepten: zorg dat de behouden recepten samen aanbiedingen van zo veel mogelijk verschillende supermarkten benutten (te herkennen via het "supermarket"-veld in de base_deal_ingredients).
+Verwijder recepten die:
+- culinair niet kloppen of een logische fout bevatten
+- ongezond zijn voor een gezin
+- te complex zijn voor een gemiddelde thuiskok
+- sterk overlappen met een ander recept in dezelfde lijst (zelfde hoofdbestanddeel én zelfde bereidingswijze)
 
-Behoud per recept ALLE velden ongewijzigd, inclusief de volledige "instructions" (bereidingsstappen). Verbeter onduidelijke of incomplete stappen waar nodig, maar laat ze nooit weg.
+Behoud de beste ${keepPerGroup} recepten en streef naar maximale diversiteit:
+- Variatie in hoofdbestanddeel (niet 3× kip als dat te veel is)
+- Variatie in bereidingswijze (bakken, koken, oven, wok, etc.)
+- Variatie in supermarkt (gebruik deals van zo veel mogelijk winkels)
+- Variatie in keuken of smaakprofiel
+
+Behoud per recept ALLE velden ongewijzigd, inclusief de volledige "instructions". Verbeter onduidelijke stappen, maar laat ze nooit weg.
 
 Receptconcepten (JSON):
 ${JSON.stringify(group)}`;
