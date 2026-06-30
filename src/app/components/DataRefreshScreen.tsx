@@ -100,10 +100,12 @@ export function DataRefreshScreen({
   dealStatus,
   onStatusRefetch,
 }: DataRefreshScreenProps) {
-  // Herlaad DB-status na voltooiing van de stream.
+  // Herlaad DB-status zodra de stream klaar is (done) of de verbinding verbreekt
+  // (error). Na een iOS-network-drop loopt de scrape door op de server — de
+  // status-poll pikt het resultaat op zodra de run 'done' is.
   useEffect(() => {
-    if (isDone) onStatusRefetch();
-  }, [isDone, onStatusRefetch]);
+    if (isDone || error) onStatusRefetch();
+  }, [isDone, error, onStatusRefetch]);
 
   // Stel de lijst samen: neem stores uit de stream-state of uit de DB-status.
   const streamStores = storeProgress.map((s) => s.store);

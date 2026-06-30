@@ -52,7 +52,10 @@ export async function GET(req: Request) {
     confidenceScore: run.confidence_score as number | null,
   }));
 
-  const hasDataToday = stores.some((s) => s.status === 'done');
+  // True zodra er 'done' runs zijn, MAAR ook als er deals in daily_deals staan
+  // (bv. vorige run slaagde, nieuwe run loopt nog of de SSE-verbinding viel weg).
+  const hasDealsInDb = Object.values(productCountsByStore).some((n) => n > 0);
+  const hasDataToday = stores.some((s) => s.status === 'done') || hasDealsInDb;
 
   return Response.json({ date: day, stores, hasDataToday });
 }
