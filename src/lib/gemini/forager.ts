@@ -576,9 +576,48 @@ async function runStrategy(
     const batch = Array.isArray(raw) ? raw : [];
     return batch.map((d) => ({ ...d, supermarket: d.supermarket || store }));
   } catch (err) {
+    // Log én gooi door — NOOIT inslikken. Een ingeslikte fout (ontbrekende key,
+    // onbekend model, 403/quota) zag er voorheen identiek uit als "0 producten
+    // gevonden". Promise.allSettled in runForager vangt de rejection op zodat één
+    // gefaalde strategie de rest niet meesleurt, maar zo kunnen we wél tellen
+    // hoeveel calls écht faalden en een totale mislukking als 'failed' melden.
     console.error(`[Forager] Strategie "${strategy.name}" voor ${store} faalde:`, err);
-    return [];
+    throw err;
   }
+}
+
+/**
+ * Verwerkt een Promise.allSettled-resultaat van strategie-calls: bundelt de
+ * deals van geslaagde calls en houdt bij hoeveel er slaagden/faalden plus de
+ * eerste foutmelding. Zo kan runForager een totale mislukking (alle calls falen)
+ * onderscheiden van een oprecht lege uitkomst (calls slaagden, 0 producten).
+ */
+function collectSettled(results: PromiseSettledResult<Deal[]>[]): {
+  deals: Deal[];
+  succeeded: number;
+  failed: number;
+  firstError: unknown;
+} {
+  const deals: Deal[] = [];
+  let succeeded = 0;
+  let failed = 0;
+  let firstError: unknown;
+  for (const r of results) {
+    if (r.status === 'fulfilled') {
+      succeeded++;
+      deals.push(...r.value);
+    } else {
+      failed++;
+      if (firstError === undefined) firstError = r.reason;
+    }
+  }
+  return { deals, succeeded, failed, firstError };
+}
+
+function errorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  return 'onbekende fout';
 }
 
 // ---------------------------------------------------------------------------
@@ -687,8 +726,22 @@ export interface ForagerResult {
   deals: Deal[];
   coverage: CoverageReport;
   aiCallsMade: number;
+  aiCallsFailed: number;
   durationMs: number;
   duplicatesRemoved: number;
+}
+
+/**
+ * Gegooid wanneer ELKE zoek-call van fase 1 + 2 faalt. Dat betekent dat de AI
+ * onbereikbaar/verkeerd geconfigureerd is (ontbrekende key, onbekend model,
+ * quota) — geen "0 aanbiedingen deze week". scrapeStore vangt dit en markeert de
+ * run als 'failed' met een zichtbare foutmelding i.p.v. een vals "Klaar!".
+ */
+export class ForagerTotalFailureError extends Error {
+  constructor(store: string, cause: unknown) {
+    super(`Aanbiedingen ophalen voor ${store} mislukte volledig: ${errorMessage(cause)}`);
+    this.name = 'ForagerTotalFailureError';
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -699,6 +752,7 @@ async function runForager(store: string, onProgress?: (count: number) => void): 
   const startMs = Date.now();
   const urlHint = buildUrlHint(store);
   let aiCallsMade = 0;
+  let aiCallsFailed = 0;
   let totalRaw = 0;
 
   console.log(`[Forager] ▶ Start voor ${store}`);
@@ -707,15 +761,14 @@ async function runForager(store: string, onProgress?: (count: number) => void): 
   console.log(`[Forager] Fase 1: ${BROAD_STRATEGIES.length} brede strategieën parallel voor ${store}`);
   aiCallsMade += BROAD_STRATEGIES.length;
 
-  const broadResults = await Promise.allSettled(
-    BROAD_STRATEGIES.map((s) => runStrategy(s, store, urlHint, []))
+  const broad = collectSettled(
+    await Promise.allSettled(BROAD_STRATEGIES.map((s) => runStrategy(s, store, urlHint, [])))
   );
-  let rawDeals: Deal[] = broadResults.flatMap((r) =>
-    r.status === 'fulfilled' ? r.value : []
-  );
+  aiCallsFailed += broad.failed;
+  const rawDeals = broad.deals;
   totalRaw += rawDeals.length;
   let allDeals = deduplicateDeals(qualityFilter(rawDeals));
-  console.log(`[Forager] Na fase 1: ${allDeals.length} unieke producten (${rawDeals.length} ruw) voor ${store}`);
+  console.log(`[Forager] Na fase 1: ${allDeals.length} unieke producten (${rawDeals.length} ruw, ${broad.failed}/${BROAD_STRATEGIES.length} calls faalden) voor ${store}`);
   onProgress?.(allDeals.length);
 
   // ── Fase 2: Categoriespecifieke zoekstrategieën (parallel) ────────────────
@@ -724,16 +777,23 @@ async function runForager(store: string, onProgress?: (count: number) => void): 
   console.log(`[Forager] Fase 2: ${CATEGORY_STRATEGIES.length} categoriestrategieën parallel voor ${store}`);
   aiCallsMade += CATEGORY_STRATEGIES.length;
 
-  const categoryResults = await Promise.allSettled(
-    CATEGORY_STRATEGIES.map((s) => runStrategy(s, store, urlHint, []))
+  const category = collectSettled(
+    await Promise.allSettled(CATEGORY_STRATEGIES.map((s) => runStrategy(s, store, urlHint, [])))
   );
-  const categoryRaw: Deal[] = categoryResults.flatMap((r) =>
-    r.status === 'fulfilled' ? r.value : []
-  );
+  aiCallsFailed += category.failed;
+  const categoryRaw = category.deals;
   totalRaw += categoryRaw.length;
   allDeals = deduplicateDeals([...allDeals, ...qualityFilter(categoryRaw)]);
-  console.log(`[Forager] Na fase 2: ${allDeals.length} unieke producten (${categoryRaw.length} ruw) voor ${store}`);
+  console.log(`[Forager] Na fase 2: ${allDeals.length} unieke producten (${categoryRaw.length} ruw, ${category.failed}/${CATEGORY_STRATEGIES.length} calls faalden) voor ${store}`);
   onProgress?.(allDeals.length);
+
+  // ── Totale-mislukking-bewaking ────────────────────────────────────────────
+  // Als ELKE call van fase 1 + 2 faalde, is de AI onbereikbaar/verkeerd
+  // geconfigureerd (geen lege week). Gooi door zodat scrapeStore de run als
+  // 'failed' markeert en de gebruiker de échte reden ziet i.p.v. "Klaar!".
+  if (broad.succeeded === 0 && category.succeeded === 0) {
+    throw new ForagerTotalFailureError(store, broad.firstError ?? category.firstError);
+  }
 
   // ── Fase 3: Coverage analyse ──────────────────────────────────────────────
   let coverage = analyzeCoverage(allDeals);
@@ -757,12 +817,13 @@ async function runForager(store: string, onProgress?: (count: number) => void): 
 
     const currentExclude = allDeals.map((d) => d.product_name);
     const recoveryStrategies = missing.map(buildRecoveryStrategy);
-    const recoveryResults = await Promise.allSettled(
-      recoveryStrategies.map((s) => runStrategy(s, store, urlHint, currentExclude))
+    const recovery = collectSettled(
+      await Promise.allSettled(
+        recoveryStrategies.map((s) => runStrategy(s, store, urlHint, currentExclude))
+      )
     );
-    const recoveryRaw: Deal[] = recoveryResults.flatMap((r) =>
-      r.status === 'fulfilled' ? r.value : []
-    );
+    aiCallsFailed += recovery.failed;
+    const recoveryRaw = recovery.deals;
     totalRaw += recoveryRaw.length;
 
     if (recoveryRaw.length === 0) {
@@ -807,10 +868,10 @@ async function runForager(store: string, onProgress?: (count: number) => void): 
     `confidence ${coverage.confidenceScore}%, ` +
     `${coverage.categoriesFound.length}/${PRODUCT_CATEGORIES.length} categorieën, ` +
     `${duplicatesRemoved} duplicaten verwijderd, ` +
-    `${aiCallsMade} AI-calls, ${Math.round(durationMs / 1000)}s`
+    `${aiCallsMade} AI-calls (${aiCallsFailed} faalden), ${Math.round(durationMs / 1000)}s`
   );
 
-  return { deals: allDeals, coverage, aiCallsMade, durationMs, duplicatesRemoved };
+  return { deals: allDeals, coverage, aiCallsMade, aiCallsFailed, durationMs, duplicatesRemoved };
 }
 
 // ---------------------------------------------------------------------------

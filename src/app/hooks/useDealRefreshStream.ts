@@ -11,6 +11,7 @@ export interface StoreProgress {
   productsFound?: number;
   confidenceScore?: number;
   currentCount?: number;
+  errorMessage?: string;
 }
 
 export function useDealRefreshStream() {
@@ -80,7 +81,11 @@ export function useDealRefreshStream() {
                   });
                 break;
               case 'store-error':
-                if (store) updateStore(store, { status: 'failed' });
+                if (store)
+                  updateStore(store, {
+                    status: 'failed',
+                    errorMessage: (data.error as string | undefined) ?? undefined,
+                  });
                 break;
               case 'store-skip':
                 if (store) updateStore(store, { status: 'skipped' });

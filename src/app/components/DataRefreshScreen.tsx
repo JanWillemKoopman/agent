@@ -62,8 +62,11 @@ function StoreCard({ store, progress, dbStatus }: {
               ? `${progress.currentCount} gevonden · ophalen…`
               : 'Aanbiedingen ophalen…'
           )}
-          {isDone && 'Opgehaald'}
-          {isFailed && 'Mislukt — probeer opnieuw'}
+          {isDone &&
+            (progress?.productsFound != null && progress.productsFound > 0
+              ? `${progress.productsFound} producten opgehaald`
+              : 'Geen producten gevonden')}
+          {isFailed && (progress?.errorMessage ?? 'Mislukt — probeer opnieuw')}
           {showDbData && `Bijgewerkt ${formatDateTime(lastUpdate ?? null)}`}
           {isIdle && !showDbData && 'Wacht op start…'}
         </p>
@@ -122,6 +125,16 @@ export function DataRefreshScreen({
   const hasAnyData = (dealStatus?.stores ?? []).some((s) => s.status === 'done');
   const isAnyRunningInDb = (dealStatus?.stores ?? []).some((s) => s.status === 'running');
 
+  // Eerlijke afronding van de run: groen alleen als er echt producten zijn én
+  // geen enkele winkel faalde. Anders een waarschuwing met de echte reden — zo
+  // verschijnt een mislukte scrape nooit meer als vals "Klaar!".
+  const failedStores = storeProgress.filter((s) => s.status === 'failed');
+  const totalProducts =
+    (dealStatus?.stores ?? []).reduce((sum, s) => sum + (s.productsFound ?? 0), 0) ||
+    storeProgress.reduce((sum, s) => sum + (s.productsFound ?? 0), 0);
+  const doneSuccess = isDone && !error && failedStores.length === 0 && totalProducts > 0;
+  const doneWithProblems = isDone && !error && !doneSuccess;
+
   const buttonDisabled = isRunning;
   const buttonLabel = isRunning
     ? 'Bezig met ophalen…'
@@ -156,20 +169,40 @@ export function DataRefreshScreen({
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-2xl px-4 py-5 space-y-5">
 
-          {/* Succesmelding */}
-          {isDone && !error && (
+          {/* Succesmelding — alleen bij écht opgehaalde producten */}
+          {doneSuccess && (
             <div className="flex items-center gap-3 rounded-card bg-successSoft border border-success/30 p-4">
               <i className="ph-fill ph-check-circle text-2xl text-success shrink-0" aria-hidden="true" />
               <div>
                 <p className="text-sm font-semibold text-successInk">Klaar!</p>
                 <p className="text-xs text-successInk/80 mt-0.5">
-                  Alle aanbiedingen zijn opgehaald en opgeslagen. Je kunt nu recepten genereren.
+                  {totalProducts} aanbiedingen opgehaald en opgeslagen. Je kunt nu recepten genereren.
                 </p>
               </div>
             </div>
           )}
 
-          {/* Foutmelding */}
+          {/* Waarschuwing — run afgerond maar (deels) mislukt of 0 producten */}
+          {doneWithProblems && (
+            <div className="flex items-start gap-3 rounded-card bg-dangerSoft border border-danger/30 p-4">
+              <i className="ph-fill ph-warning-circle text-2xl text-danger shrink-0" aria-hidden="true" />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-dangerInk">
+                  {failedStores.length > 0
+                    ? `Ophalen mislukte bij ${failedStores.length} ${failedStores.length === 1 ? 'winkel' : 'winkels'}`
+                    : 'Geen aanbiedingen gevonden'}
+                </p>
+                <p className="text-xs text-dangerInk/80 mt-0.5">
+                  {failedStores.length > 0
+                    ? (failedStores.find((s) => s.errorMessage)?.errorMessage ??
+                      'Er ging iets mis tijdens het ophalen. Probeer het opnieuw.')
+                    : 'Er konden geen producten worden opgehaald voor de geselecteerde winkels. Probeer het opnieuw.'}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Foutmelding (stream-breed) */}
           {error && (
             <div className="flex items-center gap-3 rounded-card bg-dangerSoft border border-danger/30 p-4">
               <i className="ph-fill ph-warning-circle text-2xl text-danger shrink-0" aria-hidden="true" />

@@ -3,8 +3,13 @@ import { GoogleGenAI } from '@google/genai';
 // Centrale model-ids. Hybride opzet:
 // - FLASH_LITE: snel + goedkoop — voor Foragers (stap 1) en Shoppers (stap 4).
 // - CHEF:       culinaire kwaliteit — voor Chefs (stap 2) en Critic (stap 3).
-export const GEMINI_FLASH_LITE = 'gemini-3.1-flash-lite';
-export const GEMINI_CHEF = 'gemini-3.5-flash';
+//
+// Gepind op de stabiele 2.5-modellen. Eerder stonden hier `gemini-3.1-flash-lite`
+// en `gemini-3.5-flash`; die werden door de API afgewezen (geen toegang/quota voor
+// de gemini-3-tier op deze key) waardoor élke scrape-call faalde en — door het
+// stille opvangen van fouten — als "0 producten" verscheen. 2.5 is bewezen werkend.
+export const GEMINI_FLASH_LITE = 'gemini-2.5-flash-lite';
+export const GEMINI_CHEF = 'gemini-2.5-flash';
 
 let client: GoogleGenAI | null = null;
 

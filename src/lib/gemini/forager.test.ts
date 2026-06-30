@@ -8,6 +8,30 @@ import type { Deal } from '../types';
 // ondersteunen; zorg liever dat de pure functies zelfstandig testbaar zijn.
 // ---------------------------------------------------------------------------
 
+// Gekopieerd uit forager.ts: bundelt allSettled-resultaten en telt slagen/falen.
+// Drijft de "alle calls faalden → markeer run als failed"-beslissing.
+function collectSettled(results: PromiseSettledResult<Deal[]>[]): {
+  deals: Deal[];
+  succeeded: number;
+  failed: number;
+  firstError: unknown;
+} {
+  const deals: Deal[] = [];
+  let succeeded = 0;
+  let failed = 0;
+  let firstError: unknown;
+  for (const r of results) {
+    if (r.status === 'fulfilled') {
+      succeeded++;
+      deals.push(...r.value);
+    } else {
+      failed++;
+      if (firstError === undefined) firstError = r.reason;
+    }
+  }
+  return { deals, succeeded, failed, firstError };
+}
+
 function normalize(s: string): string {
   return s
     .toLowerCase()
@@ -264,5 +288,57 @@ describe('qualityFilter', () => {
     expect(
       qualityFilter([makeDeal({ deal_type: 'single', min_quantity: 1, bundle_price: null })])
     ).toHaveLength(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// collectSettled — telt geslaagde vs. gefaalde strategie-calls. Dit is de basis
+// voor de "alle calls faalden → run als failed melden" beslissing in runForager.
+// ---------------------------------------------------------------------------
+
+describe('collectSettled', () => {
+  const ok = (deals: Deal[]): PromiseSettledResult<Deal[]> => ({
+    status: 'fulfilled',
+    value: deals,
+  });
+  const fail = (reason: unknown): PromiseSettledResult<Deal[]> => ({
+    status: 'rejected',
+    reason,
+  });
+
+  it('telt geslaagde calls en bundelt hun deals', () => {
+    const res = collectSettled([ok([makeDeal()]), ok([makeDeal(), makeDeal()])]);
+    expect(res.succeeded).toBe(2);
+    expect(res.failed).toBe(0);
+    expect(res.deals).toHaveLength(3);
+  });
+
+  it('telt gefaalde calls en bewaart de eerste fout', () => {
+    const res = collectSettled([
+      fail(new Error('GEMINI_API_KEY ontbreekt')),
+      fail(new Error('tweede fout')),
+    ]);
+    expect(res.succeeded).toBe(0);
+    expect(res.failed).toBe(2);
+    expect(res.deals).toHaveLength(0);
+    expect((res.firstError as Error).message).toBe('GEMINI_API_KEY ontbreekt');
+  });
+
+  it('onderscheidt een geslaagde-maar-lege uitkomst van een totale mislukking', () => {
+    // Calls slaagden maar gaven 0 deals → succeeded > 0 (geen mislukking).
+    const emptySuccess = collectSettled([ok([]), ok([])]);
+    expect(emptySuccess.succeeded).toBe(2);
+    expect(emptySuccess.failed).toBe(0);
+
+    // Alle calls faalden → succeeded === 0 → runForager moet gooien (failed).
+    const totalFailure = collectSettled([fail(new Error('404')), fail(new Error('404'))]);
+    expect(totalFailure.succeeded).toBe(0);
+  });
+
+  it('verwerkt een gemengde uitkomst correct', () => {
+    const res = collectSettled([ok([makeDeal()]), fail(new Error('x')), ok([])]);
+    expect(res.succeeded).toBe(2);
+    expect(res.failed).toBe(1);
+    expect(res.deals).toHaveLength(1);
   });
 });
