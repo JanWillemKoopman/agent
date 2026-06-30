@@ -542,58 +542,66 @@ ${jsonSchema(store)}`.trim(),
 }
 
 // ---------------------------------------------------------------------------
-// Hoofd-exportfunctie: forageDeals
+// Exporteerbaar resultaattype inclusief metrics
 // ---------------------------------------------------------------------------
 
-export async function forageDeals(store: string): Promise<Deal[]> {
+export interface ForagerResult {
+  deals: Deal[];
+  coverage: CoverageReport;
+  aiCallsMade: number;
+  durationMs: number;
+  duplicatesRemoved: number;
+}
+
+// ---------------------------------------------------------------------------
+// Interne implementatie
+// ---------------------------------------------------------------------------
+
+async function runForager(store: string): Promise<ForagerResult> {
+  const startMs = Date.now();
   const urlHint = buildUrlHint(store);
+  let aiCallsMade = 0;
+  let totalRaw = 0;
 
   console.log(`[Forager] ▶ Start voor ${store}`);
 
   // ── Fase 1: Brede zoekstrategieën (parallel) ──────────────────────────────
   console.log(`[Forager] Fase 1: ${BROAD_STRATEGIES.length} brede strategieën parallel voor ${store}`);
+  aiCallsMade += BROAD_STRATEGIES.length;
 
   const broadResults = await Promise.allSettled(
     BROAD_STRATEGIES.map((s) => runStrategy(s, store, urlHint, []))
   );
-  let allDeals: Deal[] = broadResults.flatMap((r) =>
+  let rawDeals: Deal[] = broadResults.flatMap((r) =>
     r.status === 'fulfilled' ? r.value : []
   );
-  allDeals = deduplicateDeals(qualityFilter(allDeals));
-
-  console.log(
-    `[Forager] Na fase 1: ${allDeals.length} unieke producten voor ${store}`
-  );
+  totalRaw += rawDeals.length;
+  let allDeals = deduplicateDeals(qualityFilter(rawDeals));
+  console.log(`[Forager] Na fase 1: ${allDeals.length} unieke producten (${rawDeals.length} ruw) voor ${store}`);
 
   // ── Fase 2: Categoriespecifieke zoekstrategieën (parallel) ────────────────
-  console.log(
-    `[Forager] Fase 2: ${CATEGORY_STRATEGIES.length} categoriestrategieën parallel voor ${store}`
-  );
-  const excludeAfterPhase1 = allDeals.map((d) => d.product_name);
+  console.log(`[Forager] Fase 2: ${CATEGORY_STRATEGIES.length} categoriestrategieën parallel voor ${store}`);
+  aiCallsMade += CATEGORY_STRATEGIES.length;
 
+  const excludeAfterPhase1 = allDeals.map((d) => d.product_name);
   const categoryResults = await Promise.allSettled(
     CATEGORY_STRATEGIES.map((s) => runStrategy(s, store, urlHint, excludeAfterPhase1))
   );
-  const categoryDeals: Deal[] = categoryResults.flatMap((r) =>
+  const categoryRaw: Deal[] = categoryResults.flatMap((r) =>
     r.status === 'fulfilled' ? r.value : []
   );
-
-  allDeals = deduplicateDeals([...allDeals, ...qualityFilter(categoryDeals)]);
-  console.log(
-    `[Forager] Na fase 2: ${allDeals.length} unieke producten voor ${store}`
-  );
+  totalRaw += categoryRaw.length;
+  allDeals = deduplicateDeals([...allDeals, ...qualityFilter(categoryRaw)]);
+  console.log(`[Forager] Na fase 2: ${allDeals.length} unieke producten (${categoryRaw.length} ruw) voor ${store}`);
 
   // ── Fase 3: Coverage analyse ──────────────────────────────────────────────
   let coverage = analyzeCoverage(allDeals);
   console.log(
     `[Forager] Coverage voor ${store}: ${coverage.confidenceScore}% ` +
-    `(${coverage.categoriesFound.length}/${PRODUCT_CATEGORIES.length} categorieën, ` +
-    `${coverage.totalProducts} producten)`
+    `(${coverage.categoriesFound.length}/${PRODUCT_CATEGORIES.length} categorieën)`
   );
   if (coverage.categoriesMissing.length > 0) {
-    console.log(
-      `[Forager] Ontbrekende categorieën: ${coverage.categoriesMissing.join(', ')}`
-    );
+    console.log(`[Forager] Ontbrekende categorieën: ${coverage.categoriesMissing.join(', ')}`);
   }
 
   // ── Fase 4: Recovery rounds voor ontbrekende categorieën ─────────────────
@@ -602,39 +610,57 @@ export async function forageDeals(store: string): Promise<Deal[]> {
 
     const missing = coverage.categoriesMissing.slice(0, MAX_RECOVERY_CATEGORIES_PER_ROUND);
     console.log(
-      `[Forager] Recovery ronde ${round}: zoek ${missing.length} ontbrekende ` +
-      `categorieën voor ${store} (${missing.join(', ')})`
+      `[Forager] Recovery ronde ${round}: ${missing.length} categorieën voor ${store} (${missing.join(', ')})`
     );
+    aiCallsMade += missing.length;
 
     const currentExclude = allDeals.map((d) => d.product_name);
     const recoveryStrategies = missing.map(buildRecoveryStrategy);
-
     const recoveryResults = await Promise.allSettled(
       recoveryStrategies.map((s) => runStrategy(s, store, urlHint, currentExclude))
     );
-    const recoveryDeals: Deal[] = recoveryResults.flatMap((r) =>
+    const recoveryRaw: Deal[] = recoveryResults.flatMap((r) =>
       r.status === 'fulfilled' ? r.value : []
     );
+    totalRaw += recoveryRaw.length;
 
-    if (recoveryDeals.length === 0) {
-      console.log(`[Forager] Recovery ronde ${round}: geen nieuwe producten gevonden, stop.`);
+    if (recoveryRaw.length === 0) {
+      console.log(`[Forager] Recovery ronde ${round}: geen nieuwe producten, stop.`);
       break;
     }
 
-    allDeals = deduplicateDeals([...allDeals, ...qualityFilter(recoveryDeals)]);
-
+    allDeals = deduplicateDeals([...allDeals, ...qualityFilter(recoveryRaw)]);
     coverage = analyzeCoverage(allDeals);
     console.log(
-      `[Forager] Na recovery ronde ${round}: ${allDeals.length} producten, ` +
-      `coverage ${coverage.confidenceScore}%`
+      `[Forager] Na recovery ronde ${round}: ${allDeals.length} producten, coverage ${coverage.confidenceScore}%`
     );
   }
+
+  const durationMs = Date.now() - startMs;
+  const duplicatesRemoved = totalRaw - allDeals.length;
 
   console.log(
     `[Forager] ✓ Klaar voor ${store}: ${allDeals.length} producten, ` +
     `confidence ${coverage.confidenceScore}%, ` +
-    `categorieën ${coverage.categoriesFound.length}/${PRODUCT_CATEGORIES.length}`
+    `${coverage.categoriesFound.length}/${PRODUCT_CATEGORIES.length} categorieën, ` +
+    `${duplicatesRemoved} duplicaten verwijderd, ` +
+    `${aiCallsMade} AI-calls, ${Math.round(durationMs / 1000)}s`
   );
 
-  return allDeals;
+  return { deals: allDeals, coverage, aiCallsMade, durationMs, duplicatesRemoved };
+}
+
+// ---------------------------------------------------------------------------
+// Exportfuncties
+// ---------------------------------------------------------------------------
+
+/** Volledige forager-run met metrics. Gebruik dit in scrapeStore voor opslag. */
+export async function forageDealsWithMetrics(store: string): Promise<ForagerResult> {
+  return runForager(store);
+}
+
+/** Backward-compatibele wrapper die alleen de deals teruggeeft. */
+export async function forageDeals(store: string): Promise<Deal[]> {
+  const result = await runForager(store);
+  return result.deals;
 }

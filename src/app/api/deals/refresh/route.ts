@@ -3,7 +3,7 @@ import {
   getSupabaseServiceClient,
   getAccessTokenFromRequest,
 } from '@/lib/supabase/server';
-import { forageDeals } from '@/lib/gemini/agents';
+import { forageDealsWithMetrics } from '@/lib/gemini/forager';
 import { amsterdamDate } from '@/lib/recipes/deals-cache';
 import { sseComment, sseEvent } from '@/lib/sse';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -62,7 +62,8 @@ async function scrapeStore(
   if (!claimed) return; // Een ander doet (of deed) deze winkel al.
 
   try {
-    const deals = await forageDeals(store);
+    const { deals, coverage, aiCallsMade, durationMs, duplicatesRemoved } =
+      await forageDealsWithMetrics(store);
 
     // Idempotent: vervang eventuele bestaande rijen van vandaag.
     await service.from('daily_deals').delete().eq('store', store).eq('deal_date', day);
@@ -85,7 +86,16 @@ async function scrapeStore(
 
     await service
       .from('deal_scrape_runs')
-      .update({ status: 'done', finished_at: new Date().toISOString() })
+      .update({
+        status: 'done',
+        finished_at: new Date().toISOString(),
+        products_found: deals.length,
+        categories_found: coverage.categoriesFound.length,
+        confidence_score: coverage.confidenceScore,
+        ai_calls_made: aiCallsMade,
+        duration_ms: durationMs,
+        duplicates_removed: duplicatesRemoved,
+      })
       .eq('store', store)
       .eq('deal_date', day);
   } catch (err) {
