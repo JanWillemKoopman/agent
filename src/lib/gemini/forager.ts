@@ -205,6 +205,11 @@ function qualityFilter(deals: Deal[]): Deal[] {
     if (!d.product_name || d.product_name.trim().length < 3) return false;
     if (typeof d.deal_price !== 'number' || d.deal_price < 0) return false;
     if (!['single', 'bogo', 'multi_buy', 'percentage_off'].includes(d.deal_type)) return false;
+    // Vreemde hoeveelheden
+    const qty = Number(d.min_quantity);
+    if (!Number.isInteger(qty) || qty < 1) return false;
+    if ((d.deal_type === 'bogo' || d.deal_type === 'multi_buy') && qty < 2) return false;
+    if (d.bundle_price !== null && d.bundle_price !== undefined && d.bundle_price <= 0) return false;
     return true;
   });
 }

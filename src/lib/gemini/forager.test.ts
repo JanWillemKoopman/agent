@@ -49,6 +49,10 @@ function qualityFilter(deals: Deal[]): Deal[] {
     if (!d.product_name || d.product_name.trim().length < 3) return false;
     if (typeof d.deal_price !== 'number' || d.deal_price < 0) return false;
     if (!['single', 'bogo', 'multi_buy', 'percentage_off'].includes(d.deal_type)) return false;
+    const qty = Number(d.min_quantity);
+    if (!Number.isInteger(qty) || qty < 1) return false;
+    if ((d.deal_type === 'bogo' || d.deal_type === 'multi_buy') && qty < 2) return false;
+    if (d.bundle_price !== null && d.bundle_price !== undefined && d.bundle_price <= 0) return false;
     return true;
   });
 }
@@ -196,9 +200,13 @@ describe('qualityFilter', () => {
     ).toHaveLength(0);
   });
 
-  it('accepteert alle geldige deal_types', () => {
-    const types: Deal['deal_type'][] = ['single', 'bogo', 'multi_buy', 'percentage_off'];
-    const deals = types.map((deal_type) => makeDeal({ deal_type }));
+  it('accepteert alle geldige deal_types met correcte min_quantity', () => {
+    const deals: Deal[] = [
+      makeDeal({ deal_type: 'single', min_quantity: 1 }),
+      makeDeal({ deal_type: 'bogo', min_quantity: 2, bundle_price: 3.99 }),
+      makeDeal({ deal_type: 'multi_buy', min_quantity: 2, bundle_price: 5.0 }),
+      makeDeal({ deal_type: 'percentage_off', min_quantity: 1 }),
+    ];
     expect(qualityFilter(deals)).toHaveLength(4);
   });
 
@@ -218,5 +226,43 @@ describe('qualityFilter', () => {
       makeDeal({ product_name: 'Jumbo Melk 1L' }),
     ];
     expect(qualityFilter(deals)).toHaveLength(2);
+  });
+
+  it('filtert deals met min_quantity = 0', () => {
+    expect(qualityFilter([makeDeal({ min_quantity: 0 })])).toHaveLength(0);
+  });
+
+  it('filtert deals met negatieve min_quantity', () => {
+    expect(qualityFilter([makeDeal({ min_quantity: -1 })])).toHaveLength(0);
+  });
+
+  it('filtert bogo deals waarbij min_quantity = 1 (inconsistent)', () => {
+    expect(
+      qualityFilter([makeDeal({ deal_type: 'bogo', min_quantity: 1 })])
+    ).toHaveLength(0);
+  });
+
+  it('filtert multi_buy deals waarbij min_quantity = 1 (inconsistent)', () => {
+    expect(
+      qualityFilter([makeDeal({ deal_type: 'multi_buy', min_quantity: 1, bundle_price: 5.0 })])
+    ).toHaveLength(0);
+  });
+
+  it('accepteert bogo deal met min_quantity = 2', () => {
+    expect(
+      qualityFilter([makeDeal({ deal_type: 'bogo', min_quantity: 2, bundle_price: 3.99 })])
+    ).toHaveLength(1);
+  });
+
+  it('filtert deals met bundle_price = 0 (negatief/nul bundle onmogelijk)', () => {
+    expect(
+      qualityFilter([makeDeal({ deal_type: 'multi_buy', min_quantity: 2, bundle_price: 0 })])
+    ).toHaveLength(0);
+  });
+
+  it('accepteert deals met bundle_price = null (bij single)', () => {
+    expect(
+      qualityFilter([makeDeal({ deal_type: 'single', min_quantity: 1, bundle_price: null })])
+    ).toHaveLength(1);
   });
 });
