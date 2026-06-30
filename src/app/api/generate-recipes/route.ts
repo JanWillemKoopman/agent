@@ -7,8 +7,8 @@ import {
 import { runKitchenBrigade } from '@/lib/recipes/pipeline';
 import type { UserSettings, StatusEvent } from '@/lib/types';
 
-// Edge runtime: globale web-API's (fetch, TextEncoder), nodig voor de AI-stappen.
-export const runtime = 'edge';
+export const runtime = 'nodejs';
+export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
 
 // Een job die langer dan dit niet meer is bijgewerkt, beschouwen we als gestrand
