@@ -6,8 +6,6 @@ import { fetchSettings, saveSettings } from '@/lib/api';
 
 export function SettingsPage() {
   const [stores, setStores] = useState<string[]>(['Albert Heijn']);
-  const [minPrice, setMinPrice] = useState(0);
-  const [maxPrice, setMaxPrice] = useState(10);
   const [excludedIngredients, setExcludedIngredients] = useState<string[]>([]);
   const [ingredientInput, setIngredientInput] = useState('');
   const [loading, setLoading] = useState(true);
@@ -22,8 +20,6 @@ export function SettingsPage() {
     fetchSettings()
       .then((s) => {
         setStores(s.selected_stores?.length ? s.selected_stores : ['Albert Heijn']);
-        setMinPrice(s.min_price_pp ?? 0);
-        setMaxPrice(s.max_price_pp ?? 10);
         setExcludedIngredients(s.excluded_ingredients ?? []);
       })
       .catch((e) => setError(e.message))
@@ -63,8 +59,6 @@ export function SettingsPage() {
     try {
       await saveSettings({
         selected_stores: stores,
-        min_price_pp: minPrice,
-        max_price_pp: maxPrice,
         excluded_ingredients: excludedIngredients,
       });
       setSavedOk(true);
@@ -110,53 +104,6 @@ export function SettingsPage() {
               </label>
             );
           })}
-        </div>
-      </section>
-
-      <section className="space-y-3 rounded-card bg-surface p-4 shadow-card">
-        <h2 className="text-sm font-semibold text-ink">Prijs per persoon</h2>
-        <p className="text-xs text-muted">
-          We tonen alleen recepten binnen dit budget per persoon.
-        </p>
-        <div className="flex items-center gap-3">
-          <label className="flex-1 text-sm">
-            <span className="mb-1 block text-muted">Minimaal</span>
-            <div className="relative">
-              <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted">
-                €
-              </span>
-              <input
-                type="number"
-                min={0}
-                step={0.5}
-                value={minPrice}
-                onChange={(e) => {
-                  setSavedOk(false);
-                  setMinPrice(Number(e.target.value));
-                }}
-                className="w-full rounded-card border border-line py-2.5 pl-7 pr-3 text-sm outline-none focus:border-ahBlue"
-              />
-            </div>
-          </label>
-          <label className="flex-1 text-sm">
-            <span className="mb-1 block text-muted">Maximaal</span>
-            <div className="relative">
-              <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted">
-                €
-              </span>
-              <input
-                type="number"
-                min={0}
-                step={0.5}
-                value={maxPrice}
-                onChange={(e) => {
-                  setSavedOk(false);
-                  setMaxPrice(Number(e.target.value));
-                }}
-                className="w-full rounded-card border border-line py-2.5 pl-7 pr-3 text-sm outline-none focus:border-ahBlue"
-              />
-            </div>
-          </label>
         </div>
       </section>
 

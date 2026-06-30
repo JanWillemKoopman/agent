@@ -23,8 +23,8 @@ export function GenerateButton({ onClick, isGenerating }: GenerateButtonProps) {
         </>
       ) : (
         <>
-          <i className="ph-fill ph-sparkle text-xl" aria-hidden="true" />
-          Genereer goedkope recepten
+          <i className="ph-fill ph-chef-hat text-xl" aria-hidden="true" />
+          Recepten samenstellen
         </>
       )}
     </button>

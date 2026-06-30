@@ -194,15 +194,13 @@ function containsExcluded(recipe: FinalRecipe, excluded: string[]): boolean {
 }
 
 /**
- * Rekent alle recepten door, filtert op het prijs-per-persoon bereik uit de
- * gebruikersinstellingen en sorteert oplopend op prijs p.p.
+ * Rekent alle recepten door, filtert op uitgesloten ingrediënten en sorteert
+ * oplopend op prijs per persoon.
  */
 export function calculateRecipes(
   concepts: RecipeConcept[],
   deals: Deal[],
   prices: PriceMap,
-  minPricePp: number,
-  maxPricePp: number,
   excludedIngredients: string[] = []
 ): FinalRecipe[] {
   return concepts
@@ -210,20 +208,7 @@ export function calculateRecipes(
     .filter((r) => {
       if (r.total_price <= 0) return false;
       if (containsExcluded(r, excludedIngredients)) return false;
-
-      // Voor onvolledige recepten (ontbrekende prijzen) gebruiken we een
-      // conservatieve schatting zodat ze niet onterecht te goedkoop lijken.
-      // We schalen de bekende prijs omhoog naar rato van de ontbrekende
-      // ingrediënten zodat de budgetcheck realistischer is.
-      if (r.price_complete === false) {
-        const total = r.ingredients.length;
-        const known = r.ingredients.filter((i) => i.price !== null).length;
-        const scaleFactor = known > 0 ? total / known : 1;
-        const estimatedPp = r.price_per_person * scaleFactor;
-        return estimatedPp >= minPricePp && estimatedPp <= maxPricePp * 1.5;
-      }
-
-      return r.price_per_person >= minPricePp && r.price_per_person <= maxPricePp;
+      return true;
     })
     .sort((a, b) => a.price_per_person - b.price_per_person);
 }
