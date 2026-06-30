@@ -9,13 +9,16 @@ import type {
 const SERVINGS = 4;
 
 // Ingrediënten die standaard in huis zouden moeten zijn; prijs = €0.
+// Inclusief de verse basisaromaten (ui, knoflook, sjalot) die in vrijwel elk
+// recept terugkomen en die de gebruiker als basisvoorraad beschouwt.
 const PANTRY_KEYWORDS = [
   'olijfolie', 'zonnebloemolie', 'olie', 'boter',
   'zout', 'peper', 'zwarte peper', 'witte peper', 'cayennepeper',
   'suiker', 'poedersuiker', 'bruine suiker',
   'bloem', 'maizena',
   'azijn', 'wijnazijn', 'balsamicoazijn', 'appelazijn',
-  'knoflookpoeder', 'uienpoeder',
+  'knoflook', 'knoflookpoeder', 'uienpoeder',
+  'ui', 'uien', 'rode ui', 'sjalot', 'sjalotten',
   'paprikapoeder', 'komijn', 'kurkuma', 'kerrie', 'curry',
   'oregano', 'basilicum', 'tijm', 'rozemarijn', 'peterselie',
   'laurierblad', 'nootmuskaat', 'kaneel', 'chiliflakes',
@@ -24,13 +27,28 @@ const PANTRY_KEYWORDS = [
   'water', 'ijs',
 ];
 
-function isPantryItem(name: string): boolean {
-  const n = normalize(name);
-  return PANTRY_KEYWORDS.some((k) => n.includes(k));
-}
-
 function normalize(s: string): string {
   return s.toLowerCase().trim();
+}
+
+/** Escape voor gebruik van een keyword in een RegExp. */
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Matcht een keyword op WOORDGRENS, niet als losse substring. Voorkomt dat
+ * korte keywords als "ui" ten onrechte matchen in "fruit" of "bosui", of
+ * "peper" in "peperkoek". "2 teentjes knoflook" → matcht "knoflook"; "1 ui"
+ * → matcht "ui"; "300g fruit" → matcht NIET "ui".
+ */
+function matchesKeyword(haystack: string, keyword: string): boolean {
+  return new RegExp(`\\b${escapeRegex(keyword)}\\b`).test(haystack);
+}
+
+function isPantryItem(name: string): boolean {
+  const n = normalize(name);
+  return PANTRY_KEYWORDS.some((k) => matchesKeyword(n, k));
 }
 
 /** Zoekt de best passende deal voor een ingrediëntnaam (case-insensitief). */
@@ -91,25 +109,39 @@ function priceRecipe(
         min_quantity: deal.min_quantity ?? 1,
       });
     } else {
-      ingredients.push({ name, price: 0, is_deal: true });
+      // Aanbieding niet teruggevonden in de deals → prijs onbekend (null),
+      // niet gratis. Telt mee als onvolledig recept.
+      ingredients.push({ name, price: null, is_deal: true });
     }
   }
 
   for (const name of concept.required_standard_ingredients ?? []) {
     const pantry = isPantryItem(name);
-    const entry = pantry ? undefined : findPrice(name, prices);
+    if (pantry) {
+      ingredients.push({ name, price: 0, is_deal: false, is_pantry: true });
+      continue;
+    }
+    const entry = findPrice(name, prices);
     if (entry?.image_url && !imageUrl) imageUrl = entry.image_url;
+    // Alleen een echte, positieve prijs telt; anders onbekend (null).
+    const price =
+      entry && typeof entry.price === 'number' && entry.price > 0
+        ? entry.price
+        : null;
     ingredients.push({
       name,
-      price: pantry ? 0 : (entry?.price ?? 0),
+      price,
       is_deal: false,
-      is_pantry: pantry,
+      is_pantry: false,
       image_url: entry?.image_url ?? null,
     });
   }
 
-  const total = ingredients.reduce((sum, i) => sum + (i.price || 0), 0);
+  // Totaal uit uitsluitend BEKENDE prijzen. Een ontbrekende (niet-pantry)
+  // prijs maakt het recept onvolledig → total is dan een richtprijs.
+  const total = ingredients.reduce((sum, i) => sum + (i.price ?? 0), 0);
   const perPerson = total / SERVINGS;
+  const priceComplete = !ingredients.some((i) => !i.is_pantry && i.price === null);
 
   return {
     recipe_name: concept.recipe_name,
@@ -121,8 +153,31 @@ function priceRecipe(
     korting_deal_count: kortingDealCount,
     total_price: round2(total),
     price_per_person: round2(perPerson),
+    price_complete: priceComplete,
     image_url: imageUrl,
   };
+}
+
+/**
+ * Bepaalt welke niet-pantry standaardingrediënten over alle concepten nog géén
+ * geldige prijs hebben in de price-map. Gebruikt voor een gerichte tweede
+ * Shopper-call die alleen de ontbrekende prijzen ophaalt (zie pipeline stap 4b).
+ */
+export function findMissingPriceIngredients(
+  concepts: RecipeConcept[],
+  prices: PriceMap
+): string[] {
+  const missing = new Set<string>();
+  for (const concept of concepts) {
+    for (const name of concept.required_standard_ingredients ?? []) {
+      if (isPantryItem(name)) continue;
+      const entry = findPrice(name, prices);
+      if (!entry || typeof entry.price !== 'number' || entry.price <= 0) {
+        missing.add(name);
+      }
+    }
+  }
+  return Array.from(missing);
 }
 
 function round2(n: number): number {
@@ -154,6 +209,10 @@ export function calculateRecipes(
     .map((c) => priceRecipe(c, deals, prices))
     .filter(
       (r) =>
+        // Alleen recepten met een VOLLEDIGE prijs tonen: een onvolledig totaal
+        // is te laag en zou het recept onterecht binnen het budget kunnen
+        // laten vallen.
+        r.price_complete !== false &&
         r.price_per_person >= minPricePp &&
         r.price_per_person <= maxPricePp &&
         r.total_price > 0 &&

@@ -252,6 +252,18 @@ ${JSON.stringify(group)}`;
 // ---------------------------------------------------------------------------
 const MAX_SHOPPER_CALLS = 16;
 
+function buildShopPrompt(ingredients: string[], stores: string[], extraNote = ''): string {
+  return `Zoek via Google Search naar de actuele, reguliere prijzen en bijbehorende productafbeeldings-URL's van de volgende ingrediënten bij deze supermarkten: ${stores.join(', ')}.
+
+Ingrediënten: ${ingredients.join(', ')}${extraNote}
+
+Geef de data UITSLUITEND terug als een geldige JSON-map (zonder uitleg, zonder markdown) waarbij elke sleutel exact overeenkomt met de ingrediëntnaam zoals hierboven opgegeven, en de waarde een object is met:
+- "price" (number, reguliere prijs in euro's voor de opgegeven hoeveelheid)
+- "image_url" (string met product-afbeelding URL van het dichtstbijzijnde product, of null)
+
+Ga NIET zelf rekenen; geef alleen losse prijzen.`;
+}
+
 export async function shopPrices(
   recipesChunk: RecipeConcept[],
   stores: string[]
@@ -261,16 +273,28 @@ export async function shopPrices(
   );
   if (ingredients.length === 0) return {};
 
-  const prompt = `Zoek via Google Search naar de actuele, reguliere prijzen en bijbehorende productafbeeldings-URL's van de volgende ingrediënten bij deze supermarkten: ${stores.join(', ')}.
+  const prompt = buildShopPrompt(ingredients, stores);
+  return await generateGroundedJson<PriceMap>({ prompt, model: GEMINI_FLASH_LITE });
+}
 
-Ingrediënten: ${ingredients.join(', ')}
+/**
+ * Tweede, gerichte prijs-call: haalt UITSLUITEND de prijzen op van ingrediënten
+ * die in de eerste ronde (shopPrices) geen geldige prijs kregen — bijvoorbeeld
+ * doordat die Shopper-call faalde of een onvolledige map teruggaf. Eén losse
+ * call met de complete ontbrekende-lijst, zodat een eerder gefaalde call niet
+ * een heel recept op €0 laat staan.
+ */
+export async function shopMissingPrices(
+  ingredients: string[],
+  stores: string[]
+): Promise<PriceMap> {
+  if (ingredients.length === 0) return {};
 
-Geef de data UITSLUITEND terug als een geldige JSON-map (zonder uitleg, zonder markdown) waarbij elke sleutel exact overeenkomt met de ingrediëntnaam zoals hierboven opgegeven, en de waarde een object is met:
-- "price" (number, reguliere prijs in euro's voor de opgegeven hoeveelheid)
-- "image_url" (string met product-afbeelding URL van het dichtstbijzijnde product, of null)
-
-Ga NIET zelf rekenen; geef alleen losse prijzen.`;
-
+  const prompt = buildShopPrompt(
+    ingredients,
+    stores,
+    '\n\nDeze prijzen ontbraken in een eerdere poging — doe extra moeite om voor ELK ingrediënt een reële prijs te vinden bij een van de genoemde supermarkten.'
+  );
   return await generateGroundedJson<PriceMap>({ prompt, model: GEMINI_FLASH_LITE });
 }
 
