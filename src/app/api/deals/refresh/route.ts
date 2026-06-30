@@ -163,13 +163,14 @@ export async function POST(req: Request) {
 
       try {
         emit('started', { stores });
-        const results = await Promise.allSettled(
-          stores.map((store) => scrapeStore(service, store, day, force, emit))
-        );
-        const totalProducts = results.reduce(
-          (sum, r) => sum + (r.status === 'fulfilled' ? r.value : 0),
-          0
-        );
+        // Winkels serieel verwerken: de forager vuurt ~25 parallelle Gemini-calls
+        // per winkel. Twee winkels tegelijk = 50+ calls, wat het RPM-quotum
+        // overschrijdt (429 RESOURCE_EXHAUSTED). Eén voor één is veilig en de
+        // totale duur is acceptabel (~1-3 min per winkel).
+        let totalProducts = 0;
+        for (const store of stores) {
+          totalProducts += await scrapeStore(service, store, day, force, emit);
+        }
         emit('done', { ok: true });
 
         // Push notificatie (fire-and-forget)

@@ -1,21 +1,15 @@
 import { GoogleGenAI } from '@google/genai';
 
-// Centrale model-ids. Hybride opzet:
+// Centrale model-ids.
 // - FLASH_LITE: snel + goedkoop — voor Shoppers (stap 4).
-// - CHEF:       culinaire kwaliteit — voor Chefs (stap 2) en Critic (stap 3).
-// - FORAGER:    grounded search (stap 1) — gepind op gemini-3.5-flash.
+// - CHEF:       culinaire kwaliteit — voor Chefs (stap 2), Critic (stap 3) en Forager (stap 1).
 //
-// Let op de geschiedenis: commit c6e7d80 (juni 2025) zette de modellen op
-// `gemini-3.1-flash-lite` / `gemini-3.5-flash` terwijl die tier nog niet GA/
-// toegankelijk was op deze key — élke call faalde en verscheen (door het stille
-// opvangen van fouten) als "0 producten". Inmiddels (juni 2026) is gemini-3.5-flash
-// een stabiel model dat de google_search-tool ondersteunt. Chefs/Critic blijven op
-// het bewezen 2.5-flash zodat een eventueel access-probleem op 3.5 alleen de scraper
-// raakt — en dankzij de fail-loud-afhandeling nu zichtbaar als 'failed', niet als
-// vals "Klaar!".
+// Allemaal op gemini-2.5-flash(-lite). gemini-3.5-flash is GA maar heeft op de
+// gratis/betaalde tier een te lage RPM-limiet: de forager vuurt ~25 parallelle
+// grounded-calls per winkel, en bij meerdere winkels overschrijdt dat het quota
+// (429 RESOURCE_EXHAUSTED). Terug naar 2.5 waar het quota bewezen werkt.
 export const GEMINI_FLASH_LITE = 'gemini-2.5-flash-lite';
 export const GEMINI_CHEF = 'gemini-2.5-flash';
-export const GEMINI_FORAGER = 'gemini-3.5-flash';
 
 let client: GoogleGenAI | null = null;
 
@@ -73,6 +67,30 @@ export async function generateStructured<T>(opts: {
 }
 
 /**
+ * Retry-wrapper met exponential backoff voor 429 (RESOURCE_EXHAUSTED).
+ * De forager vuurt tot 25 parallelle calls per winkel — bij meerdere winkels
+ * kan dat het RPM-quotum overschrijden. Een korte pauze + retry is dan
+ * effectiever dan direct falen.
+ */
+async function withRetry<T>(fn: () => Promise<T>, maxAttempts = 3): Promise<T> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const is429 =
+        err instanceof Error &&
+        (err.message.includes('429') ||
+          err.message.includes('RESOURCE_EXHAUSTED') ||
+          err.message.includes('quota'));
+      if (!is429 || attempt >= maxAttempts) throw err;
+      const delayMs = 2000 * 2 ** (attempt - 1); // 2s, 4s
+      console.warn(`[Gemini] 429 rate-limit, retry ${attempt}/${maxAttempts} na ${delayMs}ms`);
+      await new Promise((r) => setTimeout(r, delayMs));
+    }
+  }
+}
+
+/**
  * Genereert JSON met de google_search grounding-tool ingeschakeld.
  * `responseSchema` mag hier niet, dus we vragen JSON in de prompt en parsen
  * het antwoord defensief. Gebruikt voor de Foragers en Shoppers.
@@ -83,14 +101,16 @@ export async function generateGroundedJson<T>(opts: {
   model?: string;
 }): Promise<T> {
   const ai = getGeminiClient();
-  const response = await ai.models.generateContent({
-    model: opts.model ?? GEMINI_FLASH_LITE,
-    contents: opts.prompt,
-    config: {
-      systemInstruction: opts.systemInstruction,
-      tools: [{ googleSearch: {} }],
-      temperature: 0.4,
-    },
+  return withRetry(async () => {
+    const response = await ai.models.generateContent({
+      model: opts.model ?? GEMINI_FLASH_LITE,
+      contents: opts.prompt,
+      config: {
+        systemInstruction: opts.systemInstruction,
+        tools: [{ googleSearch: {} }],
+        temperature: 0.4,
+      },
+    });
+    return extractJson<T>(response.text ?? '');
   });
-  return extractJson<T>(response.text ?? '');
 }
