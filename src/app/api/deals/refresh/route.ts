@@ -35,8 +35,9 @@ async function claimRun(
     return false;
   }
 
-  // Rij bestaat al — bij force ook 'done' resetten, anders alleen 'failed'.
-  const allowedStatuses = force ? ['failed', 'done'] : ['failed'];
+  // Rij bestaat al. Bij force resetten we ook 'done' en 'running' (vastgelopen run).
+  // Zonder force alleen 'failed' (automatische retry na crash).
+  const allowedStatuses = force ? ['failed', 'done', 'running'] : ['failed'];
   const { data: retried } = await service
     .from('deal_scrape_runs')
     .update({ status: 'running', started_at: new Date().toISOString(), finished_at: null })

@@ -38,8 +38,10 @@ export interface CoverageReport {
 // Constanten
 // ---------------------------------------------------------------------------
 
-const MAX_RECOVERY_ROUNDS = 5;
-const MAX_RECOVERY_CATEGORIES_PER_ROUND = 8;
+// Houd recovery beperkt: elke ronde kost ~5s serieel en edge-functies hebben
+// een timeout van ~30-60s. Fase 1+2 kost al ~10s, dus max 2 rondes is veilig.
+const MAX_RECOVERY_ROUNDS = 2;
+const MAX_RECOVERY_CATEGORIES_PER_ROUND = 6;
 
 export const STORE_DEALS_URLS: Record<string, string> = {
   'Albert Heijn': 'https://www.ah.nl/bonus',
@@ -773,21 +775,24 @@ async function runForager(store: string): Promise<ForagerResult> {
     );
   }
 
-  // ── Fase 5: Gap-analyse — laat Gemini zien wat we hebben en vraag wat mist ──
-  console.log(`[Forager] Fase 5: gap-analyse voor ${store} (${allDeals.length} gevonden producten als context)`);
-  aiCallsMade += 1;
-  const gapRaw = await runGapAnalysis(store, urlHint, allDeals);
-  totalRaw += gapRaw.length;
+  // ── Fase 5: Gap-analyse — alleen als coverage onder 85% ligt ────────────────
+  // Sla over bij goede coverage om edge-functie timeout-vrij te houden.
+  if (coverage.confidenceScore < 85) {
+    console.log(`[Forager] Fase 5: gap-analyse voor ${store} (coverage ${coverage.confidenceScore}%, ${allDeals.length} producten als context)`);
+    aiCallsMade += 1;
+    const gapRaw = await runGapAnalysis(store, urlHint, allDeals);
+    totalRaw += gapRaw.length;
 
-  if (gapRaw.length > 0) {
-    const beforeGap = allDeals.length;
-    allDeals = deduplicateDeals([...allDeals, ...qualityFilter(gapRaw)]);
-    coverage = analyzeCoverage(allDeals);
-    console.log(
-      `[Forager] Na gap-analyse: ${allDeals.length} producten (+${allDeals.length - beforeGap} nieuw), coverage ${coverage.confidenceScore}%`
-    );
-  } else {
-    console.log(`[Forager] Gap-analyse: geen extra producten gevonden.`);
+    if (gapRaw.length > 0) {
+      const beforeGap = allDeals.length;
+      allDeals = deduplicateDeals([...allDeals, ...qualityFilter(gapRaw)]);
+      coverage = analyzeCoverage(allDeals);
+      console.log(
+        `[Forager] Na gap-analyse: ${allDeals.length} producten (+${allDeals.length - beforeGap} nieuw), coverage ${coverage.confidenceScore}%`
+      );
+    } else {
+      console.log(`[Forager] Gap-analyse: geen extra producten gevonden.`);
+    }
   }
 
   const durationMs = Date.now() - startMs;
