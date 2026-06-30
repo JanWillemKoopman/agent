@@ -1,18 +1,19 @@
 /**
- * Forager v2 — Data Collector Architecture
+ * Forager v3 — Data Collector Architecture
  *
- * Missie: verzamel een zo compleet mogelijke dataset van weekaanbiedingen.
- * Niet snel, maar volledig. Kwaliteit gaat vóór snelheid.
+ * Missie: verzamel een zo compleet mogelijke dataset van avondeten-relevante
+ * weekaanbiedingen. Volledigheid gaat vóór snelheid.
  *
- * Architectuur (5 fasen):
- *   Fase 1 — Brede zoekstrategieën (5 parallelle calls)
- *   Fase 2 — Categoriespecifieke zoekstrategieën (13 parallelle calls)
+ * Architectuur (6 fasen):
+ *   Fase 1 — Brede zoekstrategieën (7 parallelle calls)
+ *   Fase 2 — Categoriespecifieke zoekstrategieën (18 parallelle calls)
  *   Fase 3 — Samenvoegen + fuzzy deduplicatie
  *   Fase 4 — Coverage analyse
  *   Fase 5 — Recovery: gerichte herstelronden voor ontbrekende categorieën
+ *   Fase 6 — Gap-analyse: Gemini zoekt wat we nog missen
  */
 
-import { generateGroundedJson, GEMINI_FLASH_LITE } from './client';
+import { generateGroundedJson, GEMINI_CHEF } from './client';
 import type { Deal } from '../types';
 
 // ---------------------------------------------------------------------------
@@ -37,8 +38,8 @@ export interface CoverageReport {
 // Constanten
 // ---------------------------------------------------------------------------
 
-const MAX_RECOVERY_ROUNDS = 3;
-const MAX_RECOVERY_CATEGORIES_PER_ROUND = 5;
+const MAX_RECOVERY_ROUNDS = 5;
+const MAX_RECOVERY_CATEGORIES_PER_ROUND = 8;
 
 export const STORE_DEALS_URLS: Record<string, string> = {
   'Albert Heijn': 'https://www.ah.nl/bonus',
@@ -55,23 +56,26 @@ export const STORE_SEARCH_HINTS: Record<string, string> = {
     'Probeer "Lidl Nederland weekaanbiedingen" of "lidl.nl aanbiedingen".',
 };
 
-// Categorieën die de Coverage Engine controleert.
+// Avondeten-gerichte categorieën voor de Coverage Engine (18 categorieën).
 const PRODUCT_CATEGORIES: string[] = [
   'Groente',
   'Fruit',
-  'Vlees',
+  'Aardappelen',
+  'Kip & Gevogelte',
+  'Rund & Varkensvlees',
   'Vis',
+  'Zeevruchten',
   'Vegetarisch & Vegan',
-  'Zuivel',
+  'Peulvruchten',
+  'Zuivel & Eieren',
   'Kaas',
-  'Brood & Bakkerij',
   'Diepvries',
   'Pasta, Rijst & Granen',
   'Sauzen & Conserven',
-  'Wereldkeuken',
-  'Dranken',
-  'Snacks & Tussendoor',
-  'Ontbijt & Koffie',
+  'Soepen & Bouillon',
+  'Wok & Wereldkeuken',
+  'Vleeswaren & Deli',
+  'Kant-en-klaar',
 ];
 
 // Trefwoorden per categorie voor de Coverage Engine.
@@ -80,73 +84,90 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
     'groente', 'paprika', 'tomaat', 'komkommer', 'sla', 'wortel', 'broccoli',
     'spinazie', 'courgette', 'prei', 'ui', 'knolselderij', 'biet', 'pompoen',
     'bloemkool', 'spruitjes', 'andijvie', 'champignon', 'asperge', 'avocado',
+    'venkel', 'selderij', 'radijs', 'mais', 'peultjes', 'sugarsnap', 'paksoi',
   ],
   'Fruit': [
     'fruit', 'appel', 'peer', 'banaan', 'sinaasappel', 'mandarijn', 'druif',
     'aardbei', 'bosbes', 'framboos', 'mango', 'ananas', 'meloen', 'kiwi',
-    'citroen', 'limoen', 'pruim', 'perzik', 'nectarine', 'watermeloen',
+    'citroen', 'limoen', 'pruim', 'perzik', 'nectarine', 'watermeloen', 'vijg',
   ],
-  'Vlees': [
-    'kipfilet', 'kip', 'gehakt', 'biefstuk', 'entrecote', 'rundvlees',
-    'varkensvlees', 'kalkoen', 'lamsvlees', 'ham', 'spek', 'worst', 'rookworst',
-    'braadworst', 'schnitzels', 'slavink', 'fricandeau', 'ribstuk', 'rosbief',
+  'Aardappelen': [
+    'aardappel', 'krieltjes', 'zoete aardappel', 'bataat', 'friet', 'frites',
+    'frietjes', 'aardappelpuree', 'roosteraardappel', 'ketelchips',
+  ],
+  'Kip & Gevogelte': [
+    'kip', 'kipfilet', 'kippendijen', 'kipdijfilet', 'drumstick', 'kippendrum',
+    'kippenvleugels', 'kipschnitzels', 'kalkoen', 'eend', 'gevogelte',
+    'kipgehakt', 'kip heel', 'hele kip',
+  ],
+  'Rund & Varkensvlees': [
+    'gehakt', 'biefstuk', 'entrecote', 'rundvlees', 'varkensvlees', 'varkenshaas',
+    'ribstuk', 'rosbief', 'slavink', 'schnitzels', 'ribben', 'karbonade',
+    'sukadelap', 'draadjesvlees', 'procureur', 'burgers', 'hamburger',
   ],
   'Vis': [
-    'zalm', 'kabeljauw', 'tilapia', 'garnalen', 'tonijn', 'haring', 'makreel',
-    'forel', 'pangasius', 'mosselen', 'inktvis', 'zeevruchten', 'vissticks',
-    'gerookte vis', 'sardines',
+    'zalm', 'kabeljauw', 'tilapia', 'tonijn', 'haring', 'makreel', 'forel',
+    'pangasius', 'vissticks', 'gerookte vis', 'sardines', 'witvis', 'zeebaars',
+    'dorade', 'vis ', ' vis', 'visfilet',
+  ],
+  'Zeevruchten': [
+    'garnalen', 'mosselen', 'inktvis', 'zeevruchten', 'kreeft', 'krab',
+    'oesters', 'sint-jakobsschelp', 'langoustines', 'calamari', 'octopus',
   ],
   'Vegetarisch & Vegan': [
     'tofu', 'tempeh', 'quorn', 'vleesvervangers', 'veggie', 'vegan', 'vegetarisch',
-    'soja', 'linzen', 'kikkererwten', 'bonen', 'plantaardig', 'vegetarian',
-    'hummus', 'falafel',
+    'soja', 'plantaardig', 'vegetarian', 'hummus', 'falafel', 'seitan',
+    'tofoe', 'haverburger', 'vegaburger',
   ],
-  'Zuivel': [
+  'Peulvruchten': [
+    'linzen', 'kikkererwten', 'bonen', 'kidneybonen', 'bruine bonen',
+    'kapucijners', 'doperwten', 'spliterwten', 'zwarte bonen', 'edamame',
+    'erwten', 'boontjes', 'sperziebonen', 'witte bonen',
+  ],
+  'Zuivel & Eieren': [
     'melk', 'yoghurt', 'kwark', 'vla', 'slagroom', 'room', 'crème fraîche',
-    'boter', 'halfvolle melk', 'volle melk', 'sojamelk', 'havermelk',
-    'amandelmelk', 'karnemelk',
+    'boter', 'eieren', ' ei', 'karnemelk', 'halfvolle melk', 'volle melk',
+    'sojamelk', 'havermelk', 'amandelmelk',
   ],
   'Kaas': [
     'kaas', 'gouda', 'edam', 'brie', 'camembert', 'feta', 'mozzarella',
-    'parmezan', 'grana padano', 'smeerkaas', 'roomkaas', 'cheddar', 'emmentaler',
-  ],
-  'Brood & Bakkerij': [
-    'brood', 'croissant', 'broodje', 'baguette', 'beschuit', 'crackers',
-    'ontbijtkoek', 'wrap', 'tortilla', 'ciabatta', 'pistolet', 'volkoren',
-    'meergranen',
+    'parmezan', 'grana padano', 'smeerkaas', 'roomkaas', 'cheddar',
+    'emmentaler', 'manchego', 'halloumi',
   ],
   'Diepvries': [
-    'diepvries', 'ingevroren', 'bevroren', 'frozen', 'friet', 'frites',
-    'ijs', 'ijsje', 'diepvriespizza', 'diepvriesgroenten',
+    'diepvries', 'ingevroren', 'bevroren', 'frozen', 'diepvriespizza',
+    'diepvriesmaaltijd', 'diepvriesgroenten', 'ijs', 'ijsje',
   ],
   'Pasta, Rijst & Granen': [
     'pasta', 'spaghetti', 'penne', 'fusilli', 'farfalle', 'lasagne', 'tagliatelle',
     'rijst', 'zilvervliesrijst', 'basmati', 'jasmine', 'couscous', 'quinoa',
-    'bulgur', 'havermout', 'bloem', 'meel',
+    'bulgur', 'havermout', 'bloem', 'meel', 'polenta', 'mie', 'noodles',
   ],
   'Sauzen & Conserven': [
     'saus', 'pastasaus', 'bolognese', 'tomatenblokjes', 'tomatenpuree', 'ketchup',
-    'mayonaise', 'pesto', 'mosterd', 'sambal', 'ketjap', 'olijfolie',
-    'bonen uit blik', 'ingeblikte', 'conserven',
+    'mayonaise', 'pesto', 'mosterd', 'sambal', 'ketjap', 'olijfolie', 'zonnebloemolie',
+    'bonen uit blik', 'ingeblikte', 'conserven', 'azijn', 'marinade', 'kruidenmix',
+    'tomatensaus', 'salsa', 'chilisaus', 'teriyaki',
   ],
-  'Wereldkeuken': [
-    'nasi', 'bami', 'curry', 'wok', 'mexicaans', 'indiaas', 'thais',
-    'aziatisch', 'italiaans', 'grieks', 'ketjap', 'kokosmelk', 'tacos',
-    'burrito', 'sushi', 'wokgroenten',
+  'Soepen & Bouillon': [
+    'soep', 'bouillon', 'fond', 'tomatensoep', 'groentesoep', 'kippensoep',
+    'bisque', 'soepblokje', 'kruidenbouillon', 'vleesbouillon', 'ramen', 'miso',
   ],
-  'Dranken': [
-    'frisdrank', 'cola', 'fanta', 'sprite', 'sap', 'appelsap', 'sinaasappelsap',
-    'water', 'mineraalwater', 'bier', 'wijn', 'limonade', 'sportdrank',
-    'energiedrank', 'ijsthee',
+  'Wok & Wereldkeuken': [
+    'nasi', 'bami', 'curry', 'wok', 'mexicaans', 'indiaas', 'thais', 'aziatisch',
+    'italiaans', 'grieks', 'kokosmelk', 'tacos', 'burrito', 'sushi', 'wokgroenten',
+    'shoarma', 'kebab', 'tikka', 'massaman', 'wrap', 'tortilla', 'pita', 'naan',
+    'rendang', 'satay', 'saté',
   ],
-  'Snacks & Tussendoor': [
-    'chips', 'nootjes', 'chocolade', 'koekjes', 'koek', 'snoep', 'popcorn',
-    'repen', 'tussendoor', 'snack', 'crackers', 'rijstwafels', 'mueslireep',
+  'Vleeswaren & Deli': [
+    'ham', 'salami', 'rookvlees', 'chorizo', 'paté', 'smeerworst', 'vleeswaren',
+    'prosciutto', 'cervelaat', 'mortadella', 'bacon', 'spek', 'rookham',
+    'bresaola', 'coppa',
   ],
-  'Ontbijt & Koffie': [
-    'cornflakes', 'muesli', 'granola', 'ontbijtgranen', 'jam', 'pindakaas',
-    'hagelslag', 'pasta ontbijt', 'koffie', 'thee', 'espresso', 'cappuccino',
-    'nespresso', 'dolce gusto', 'senseo', 'koffiecups', 'theezakjes',
+  'Kant-en-klaar': [
+    'kant-en-klaar', 'maaltijdschotel', 'ovenschotel', 'stampot', 'maaltijdpakket',
+    'verse maaltijd', 'kant en klaar', 'oven dish', 'maaltijdsalade',
+    'wraps pakket', 'lasagne kant',
   ],
 };
 
@@ -205,7 +226,6 @@ function qualityFilter(deals: Deal[]): Deal[] {
     if (!d.product_name || d.product_name.trim().length < 3) return false;
     if (typeof d.deal_price !== 'number' || d.deal_price < 0) return false;
     if (!['single', 'bogo', 'multi_buy', 'percentage_off'].includes(d.deal_type)) return false;
-    // Vreemde hoeveelheden
     const qty = Number(d.min_quantity);
     if (!Number.isInteger(qty) || qty < 1) return false;
     if ((d.deal_type === 'bogo' || d.deal_type === 'multi_buy') && qty < 2) return false;
@@ -251,7 +271,7 @@ function exclusionNote(excludeNames: string[], max = 50): string {
 }
 
 // ---------------------------------------------------------------------------
-// Fase 1 — Brede zoekstrategieën
+// Fase 1 — Brede zoekstrategieën (7 strategieën)
 // ---------------------------------------------------------------------------
 
 const BROAD_STRATEGIES: SearchStrategy[] = [
@@ -304,10 +324,37 @@ ${urlHint}${exclusionNote(exclude)}
 
 ${jsonSchema(store)}`.trim(),
   },
+  {
+    name: 'Avondeten & Diner aanbiedingen',
+    buildPrompt: (store, urlHint, exclude) => `
+Zoek ALLE aanbiedingen bij ${store} in Nederland die relevant zijn voor het bereiden van avondeten / diner.
+
+${urlHint}${exclusionNote(exclude)}
+
+Denk aan: vlees, vis, gevogelte, groenten, aardappelen, pasta, rijst, sauzen, peulvruchten, zuivel voor in maaltijden, kaas, soepen, maaltijdkruiden. Alles wat je nodig hebt om een diner te koken.
+
+Verzamel minimaal 25 producten.
+
+${jsonSchema(store)}`.trim(),
+  },
+  {
+    name: 'Maaltijdcomponenten',
+    buildPrompt: (store, urlHint, exclude) => `
+Zoek aanbiedingen bij ${store} in Nederland voor maaltijdcomponenten: proteïnen, groenten, koolhydraten en sauzen.
+
+${urlHint}${exclusionNote(exclude)}
+
+Proteïnen: kip, rund, varken, vis, garnalen, tofu, eieren, peulvruchten.
+Groenten: alle verse en diepvries groenten, ook aardappelen en wortels.
+Koolhydraten: pasta, rijst, couscous, quinoa, aardappelen.
+Sauzen & Kruiden: pastasaus, marinade, kruidenmix, bouillon, olijfolie.
+
+${jsonSchema(store)}`.trim(),
+  },
 ];
 
 // ---------------------------------------------------------------------------
-// Fase 2 — Categoriespecifieke zoekstrategieën
+// Fase 2 — Categoriespecifieke zoekstrategieën (18 strategieën)
 // ---------------------------------------------------------------------------
 
 const CATEGORY_STRATEGIES: SearchStrategy[] = [
@@ -318,7 +365,7 @@ Zoek uitsluitend verse groenten die deze week in de aanbieding zijn bij ${store}
 
 ${urlHint}${exclusionNote(exclude)}
 
-Denk aan: paprika, tomaat, komkommer, sla, wortel, broccoli, spinazie, courgette, prei, ui, bloemkool, spruitjes, champignons.
+Denk aan: paprika, tomaat, komkommer, sla, wortel, broccoli, spinazie, courgette, prei, ui, bloemkool, spruitjes, champignons, venkel, mais, paksoi.
 
 ${jsonSchema(store)}`.trim(),
   },
@@ -329,29 +376,62 @@ Zoek uitsluitend verse fruitsoorten die deze week in de aanbieding zijn bij ${st
 
 ${urlHint}${exclusionNote(exclude)}
 
-Denk aan: appels, peren, bananen, sinaasappels, mandarijnen, druiven, aardbeien, bosbes, mango, ananas, watermeloen.
+Denk aan: appels, peren, bananen, sinaasappels, mandarijnen, druiven, aardbeien, bosbes, mango, ananas, watermeloen, kiwi.
 
 ${jsonSchema(store)}`.trim(),
   },
   {
-    name: 'Vlees & Gevogelte',
+    name: 'Aardappelen',
     buildPrompt: (store, urlHint, exclude) => `
-Zoek uitsluitend vleesproducten en gevogelte die deze week in de aanbieding zijn bij ${store} in Nederland.
+Zoek uitsluitend aardappelproducten die deze week in de aanbieding zijn bij ${store} in Nederland.
 
 ${urlHint}${exclusionNote(exclude)}
 
-Denk aan: kipfilet, kippendijen, gehakt, biefstuk, entrecôte, varkenshaas, kalkoen, ham, spek, worst, schnitzels.
+Denk aan: aardappelen (vers, vastkokend, bloemig), krieltjes, zoete aardappel, bataat, aardappelpuree, roosteraardappels, friet/frites.
 
 ${jsonSchema(store)}`.trim(),
   },
   {
-    name: 'Vis & Zeevruchten',
+    name: 'Kip & Gevogelte',
     buildPrompt: (store, urlHint, exclude) => `
-Zoek uitsluitend vis en zeevruchten die deze week in de aanbieding zijn bij ${store} in Nederland.
+Zoek uitsluitend kip- en gevojeltproducten die deze week in de aanbieding zijn bij ${store} in Nederland.
 
 ${urlHint}${exclusionNote(exclude)}
 
-Denk aan: zalm, kabeljauw, tilapia, garnalen, tonijn, haring, makreel, forel, mosselen, vissticks.
+Denk aan: kipfilet, kippendijen, kipdijfilet, drumsticks, kippenvleugels, hele kip, kipgehakt, kipschnitzels, kalkoenfilet, eendenborst.
+
+${jsonSchema(store)}`.trim(),
+  },
+  {
+    name: 'Rund & Varkensvlees',
+    buildPrompt: (store, urlHint, exclude) => `
+Zoek uitsluitend rund- en varkensproducten die deze week in de aanbieding zijn bij ${store} in Nederland.
+
+${urlHint}${exclusionNote(exclude)}
+
+Denk aan: gehakt, biefstuk, entrecôte, varkenshaas, karbonade, sukadelap, rosbief, burgers, schnitzels, ribstuk, slavink.
+
+${jsonSchema(store)}`.trim(),
+  },
+  {
+    name: 'Vis',
+    buildPrompt: (store, urlHint, exclude) => `
+Zoek uitsluitend visproducten die deze week in de aanbieding zijn bij ${store} in Nederland.
+
+${urlHint}${exclusionNote(exclude)}
+
+Denk aan: zalm, kabeljauw, tilapia, tonijn, haring, makreel, forel, pangasius, zeebaars, dorade, gerookte zalm, vissticks, sardines.
+
+${jsonSchema(store)}`.trim(),
+  },
+  {
+    name: 'Zeevruchten',
+    buildPrompt: (store, urlHint, exclude) => `
+Zoek uitsluitend zeevruchten en schaal- en schelpdieren die deze week in de aanbieding zijn bij ${store} in Nederland.
+
+${urlHint}${exclusionNote(exclude)}
+
+Denk aan: garnalen, mosselen, inktvis, calamari, kreeft, krab, oesters, sint-jakobsschelpen, langoustines.
 
 ${jsonSchema(store)}`.trim(),
   },
@@ -362,7 +442,18 @@ Zoek uitsluitend vegetarische en vegan producten die deze week in de aanbieding 
 
 ${urlHint}${exclusionNote(exclude)}
 
-Denk aan: tofu, tempeh, Quorn, vleesvervangers, plantaardige melk, vegan kaas, hummus, falafel, linzen, kikkererwten.
+Denk aan: tofu, tempeh, Quorn, vleesvervangers, plantaardige melk, vegan kaas, hummus, falafel, seitan, vegaburgers, plantaardig gehakt.
+
+${jsonSchema(store)}`.trim(),
+  },
+  {
+    name: 'Peulvruchten',
+    buildPrompt: (store, urlHint, exclude) => `
+Zoek uitsluitend peulvruchten die deze week in de aanbieding zijn bij ${store} in Nederland.
+
+${urlHint}${exclusionNote(exclude)}
+
+Denk aan: linzen (rood, groen, zwart), kikkererwten (vers of uit blik), kidneybonen, bruine bonen, witte bonen, zwarte bonen, doperwten, edamame, sperziebonen.
 
 ${jsonSchema(store)}`.trim(),
   },
@@ -373,7 +464,7 @@ Zoek uitsluitend zuivelproducten en eieren die deze week in de aanbieding zijn b
 
 ${urlHint}${exclusionNote(exclude)}
 
-Denk aan: melk (halfvol, vol, mager), yoghurt, kwark, vla, slagroom, crème fraîche, boter, eieren.
+Denk aan: melk (halfvol, vol, mager), yoghurt, kwark, vla, slagroom, crème fraîche, boter, eieren, karnemelk, havermelk.
 
 ${jsonSchema(store)}`.trim(),
   },
@@ -384,18 +475,7 @@ Zoek uitsluitend kaasproducten die deze week in de aanbieding zijn bij ${store} 
 
 ${urlHint}${exclusionNote(exclude)}
 
-Denk aan: Gouda, Edam, Brie, Camembert, Feta, Mozzarella, smeerkaas, roomkaas, Parmezaan, Grana Padano.
-
-${jsonSchema(store)}`.trim(),
-  },
-  {
-    name: 'Brood & Bakkerij',
-    buildPrompt: (store, urlHint, exclude) => `
-Zoek uitsluitend brood en bakkerijproducten die deze week in de aanbieding zijn bij ${store} in Nederland.
-
-${urlHint}${exclusionNote(exclude)}
-
-Denk aan: volkoren brood, meergranen, wit brood, croissants, baguette, beschuit, crackers, wraps, ontbijtkoek.
+Denk aan: Gouda, Edam, Brie, Camembert, Feta, Mozzarella, smeerkaas, roomkaas, Parmezaan, Grana Padano, Halloumi, Manchego.
 
 ${jsonSchema(store)}`.trim(),
   },
@@ -406,7 +486,7 @@ Zoek uitsluitend diepvriesproducten die deze week in de aanbieding zijn bij ${st
 
 ${urlHint}${exclusionNote(exclude)}
 
-Denk aan: diepvriesgroenten, friet, diepvriespizza, ijs, diepvries maaltijden, diepvries vis, soep.
+Denk aan: diepvriesgroenten, diepvries maaltijden, diepvriespizza, diepvries vis, friet/frites, ijs. Vermeld altijd dat het diepvries betreft.
 
 ${jsonSchema(store)}`.trim(),
   },
@@ -417,51 +497,62 @@ Zoek uitsluitend pasta, rijst en graanproducten die deze week in de aanbieding z
 
 ${urlHint}${exclusionNote(exclude)}
 
-Denk aan: spaghetti, penne, fusilli, lasagne, rijst, zilvervliesrijst, basmati, couscous, quinoa, bulgur, havermout.
+Denk aan: spaghetti, penne, fusilli, lasagne, rijst, zilvervliesrijst, basmati, couscous, quinoa, bulgur, mie, noodles.
 
 ${jsonSchema(store)}`.trim(),
   },
   {
     name: 'Sauzen & Conserven',
     buildPrompt: (store, urlHint, exclude) => `
-Zoek uitsluitend sauzen, conserven en ingeblikte producten die deze week in de aanbieding zijn bij ${store} in Nederland.
+Zoek uitsluitend sauzen, conserven en maaltijdingrediënten die deze week in de aanbieding zijn bij ${store} in Nederland.
 
 ${urlHint}${exclusionNote(exclude)}
 
-Denk aan: pastasaus, tomatenpuree, tomatenblokjes, ketchup, mayonaise, pesto, olijfolie, bonen uit blik, kikkererwten uit blik.
+Denk aan: pastasaus, tomatenpuree, tomatenblokjes, ketchup, mayonaise, pesto, olijfolie, marinade, kruidenmix, chilisaus, teriyaki, azijn, sambal, ketjap.
 
 ${jsonSchema(store)}`.trim(),
   },
   {
-    name: 'Dranken',
+    name: 'Soepen & Bouillon',
     buildPrompt: (store, urlHint, exclude) => `
-Zoek uitsluitend dranken die deze week in de aanbieding zijn bij ${store} in Nederland.
+Zoek uitsluitend soepen, bouillon en fond die deze week in de aanbieding zijn bij ${store} in Nederland.
 
 ${urlHint}${exclusionNote(exclude)}
 
-Denk aan: frisdrank, cola, sap, water, bier, wijn, limonade, sportdranken, ijsthee, energiedranken.
+Denk aan: tomatensoep, groentesoep, kippensoep, bouillonblokjes, fond, miso, ramen, vleesbouillon, kruidenbouillon.
 
 ${jsonSchema(store)}`.trim(),
   },
   {
-    name: 'Snacks & Tussendoor',
+    name: 'Wok & Wereldkeuken',
     buildPrompt: (store, urlHint, exclude) => `
-Zoek uitsluitend snacks en tussendoor-producten die deze week in de aanbieding zijn bij ${store} in Nederland.
+Zoek uitsluitend wok- en wereldkeuken-producten die deze week in de aanbieding zijn bij ${store} in Nederland.
 
 ${urlHint}${exclusionNote(exclude)}
 
-Denk aan: chips, nootjes, chocolade, koekjes, snoep, popcorn, repen, rijstwafels, mueslirepen.
+Denk aan: nasi, bami, curry, wok-groenten, kokosmelk, tacos, tortilla's, wraps, pita, naan, shoarma, sushi, Thais/Indiaas/Mexicaans/Aziatisch.
 
 ${jsonSchema(store)}`.trim(),
   },
   {
-    name: 'Ontbijt & Koffie',
+    name: 'Vleeswaren & Deli',
     buildPrompt: (store, urlHint, exclude) => `
-Zoek uitsluitend ontbijtproducten, koffie en thee die deze week in de aanbieding zijn bij ${store} in Nederland.
+Zoek uitsluitend vleeswaren en deli-producten die deze week in de aanbieding zijn bij ${store} in Nederland.
 
 ${urlHint}${exclusionNote(exclude)}
 
-Denk aan: cornflakes, muesli, granola, jam, pindakaas, hagelslag, koffiecups, koffie, thee, espresso.
+Denk aan: ham, salami, chorizo, rookvlees, spek, bacon, paté, prosciutto, cervelaat, mortadella, smeerworst.
+
+${jsonSchema(store)}`.trim(),
+  },
+  {
+    name: 'Kant-en-klaar',
+    buildPrompt: (store, urlHint, exclude) => `
+Zoek uitsluitend kant-en-klaar maaltijden die deze week in de aanbieding zijn bij ${store} in Nederland.
+
+${urlHint}${exclusionNote(exclude)}
+
+Denk aan: verse kant-en-klaar maaltijden, ovenschotels, stampot, maaltijdschotels, diepvries maaltijden voor diner, sushi-pakken, maaltijdsalades.
 
 ${jsonSchema(store)}`.trim(),
   },
@@ -479,7 +570,7 @@ async function runStrategy(
 ): Promise<Deal[]> {
   const prompt = strategy.buildPrompt(store, urlHint, excludeNames);
   try {
-    const raw = await generateGroundedJson<Deal[]>({ prompt, model: GEMINI_FLASH_LITE });
+    const raw = await generateGroundedJson<Deal[]>({ prompt, model: GEMINI_CHEF });
     const batch = Array.isArray(raw) ? raw : [];
     return batch.map((d) => ({ ...d, supermarket: d.supermarket || store }));
   } catch (err) {
@@ -538,12 +629,52 @@ function buildRecoveryStrategy(category: string): SearchStrategy {
     buildPrompt: (store, urlHint, exclude) => `
 Zoek uitsluitend ${category} producten die deze week in de aanbieding zijn bij ${store} in Nederland.
 
-${urlHint}${exclusionNote(exclude, 30)}
+${urlHint}${exclusionNote(exclude, 40)}
 
 ${keywords ? `Zoek specifiek naar: ${keywords}.` : ''}
 
 ${jsonSchema(store)}`.trim(),
   };
+}
+
+// ---------------------------------------------------------------------------
+// Fase 6 — Gap-analyse
+// ---------------------------------------------------------------------------
+
+async function runGapAnalysis(store: string, urlHint: string, currentDeals: Deal[]): Promise<Deal[]> {
+  const foundList = currentDeals
+    .map((d) => d.product_name)
+    .slice(0, 100)
+    .join('\n');
+
+  const prompt = `
+We hebben de volgende aanbiedingen gevonden bij ${store} voor deze week:
+
+${foundList}
+
+${urlHint}
+
+Zoek nu uitsluitend avondeten-relevante aanbiedingen bij ${store} die HIERBOVEN NIET voorkomen.
+Denk aan:
+- Vlees, vis, gevogelte of zeevruchten die we nog missen
+- Groenten of aardappelen die we nog missen
+- Pasta, rijst, granen of peulvruchten die we nog missen
+- Sauzen, marinades, bouillon of kruidenmixen die we nog missen
+- Zuivel, kaas of eieren voor avondmaaltijden die we nog missen
+- Kant-en-klare avondmaaltijden of diepvries maaltijden die we nog missen
+
+Lever ALLEEN producten op die écht in de aanbieding zijn én nog niet in de lijst hierboven staan.
+
+${jsonSchema(store)}`.trim();
+
+  try {
+    const raw = await generateGroundedJson<Deal[]>({ prompt, model: GEMINI_CHEF });
+    const batch = Array.isArray(raw) ? raw : [];
+    return batch.map((d) => ({ ...d, supermarket: d.supermarket || store }));
+  } catch (err) {
+    console.error(`[Forager] Gap-analyse voor ${store} faalde:`, err);
+    return [];
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -585,12 +716,13 @@ async function runForager(store: string): Promise<ForagerResult> {
   console.log(`[Forager] Na fase 1: ${allDeals.length} unieke producten (${rawDeals.length} ruw) voor ${store}`);
 
   // ── Fase 2: Categoriespecifieke zoekstrategieën (parallel) ────────────────
+  // Geen exclusielijst — deduplicatie pakt overlappen af. Exclusies verwarren
+  // Gemini en zorgen ervoor dat het gerelateerde producten overslaat.
   console.log(`[Forager] Fase 2: ${CATEGORY_STRATEGIES.length} categoriestrategieën parallel voor ${store}`);
   aiCallsMade += CATEGORY_STRATEGIES.length;
 
-  const excludeAfterPhase1 = allDeals.map((d) => d.product_name);
   const categoryResults = await Promise.allSettled(
-    CATEGORY_STRATEGIES.map((s) => runStrategy(s, store, urlHint, excludeAfterPhase1))
+    CATEGORY_STRATEGIES.map((s) => runStrategy(s, store, urlHint, []))
   );
   const categoryRaw: Deal[] = categoryResults.flatMap((r) =>
     r.status === 'fulfilled' ? r.value : []
@@ -639,6 +771,23 @@ async function runForager(store: string): Promise<ForagerResult> {
     console.log(
       `[Forager] Na recovery ronde ${round}: ${allDeals.length} producten, coverage ${coverage.confidenceScore}%`
     );
+  }
+
+  // ── Fase 5: Gap-analyse — laat Gemini zien wat we hebben en vraag wat mist ──
+  console.log(`[Forager] Fase 5: gap-analyse voor ${store} (${allDeals.length} gevonden producten als context)`);
+  aiCallsMade += 1;
+  const gapRaw = await runGapAnalysis(store, urlHint, allDeals);
+  totalRaw += gapRaw.length;
+
+  if (gapRaw.length > 0) {
+    const beforeGap = allDeals.length;
+    allDeals = deduplicateDeals([...allDeals, ...qualityFilter(gapRaw)]);
+    coverage = analyzeCoverage(allDeals);
+    console.log(
+      `[Forager] Na gap-analyse: ${allDeals.length} producten (+${allDeals.length - beforeGap} nieuw), coverage ${coverage.confidenceScore}%`
+    );
+  } else {
+    console.log(`[Forager] Gap-analyse: geen extra producten gevonden.`);
   }
 
   const durationMs = Date.now() - startMs;
