@@ -2,7 +2,7 @@
 // dat Vercel `next build` draait — dat is het deploy-moment. Beide worden als
 // NEXT_PUBLIC_-variabele in de client-bundle geïnlined, zodat de app kan tonen
 // hoe recent hij is bijgewerkt.
-const APP_VERSION = '0.02';
+const APP_VERSION = '0.03';
 const BUILD_TIME = new Date().toISOString();
 
 /** @type {import('next').NextConfig} */
