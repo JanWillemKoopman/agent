@@ -20,6 +20,8 @@ export function RecipeDetail({
   // Robuust tegen oudere bewaarde recepten zonder deze velden.
   const servings = recipe.servings || 4;
   const instructions = recipe.instructions ?? [];
+  // price_complete ontbreekt op oudere bewaarde recepten → behandel als volledig.
+  const priceIncomplete = recipe.price_complete === false;
 
   // Sluit met Escape en blokkeer scrollen van de achtergrond.
   useEffect(() => {
@@ -82,19 +84,30 @@ export function RecipeDetail({
         </section>
 
         {/* Prijs-samenvatting */}
-        <section className="flex items-stretch gap-3">
-          <div className="flex-1 rounded-card bg-surface p-4 text-center shadow-card">
-            <p className="text-xs text-muted">Per persoon</p>
-            <p className="text-xl font-extrabold text-ink">
-              {formatEuro(recipe.price_per_person)}
-            </p>
+        <section className="space-y-2">
+          <div className="flex items-stretch gap-3">
+            <div className="flex-1 rounded-card bg-surface p-4 text-center shadow-card">
+              <p className="text-xs text-muted">Per persoon</p>
+              <p className="text-xl font-extrabold text-ink">
+                {priceIncomplete ? '± ' : ''}
+                {formatEuro(recipe.price_per_person)}
+              </p>
+            </div>
+            <div className="flex-1 rounded-card bg-surface p-4 text-center shadow-card">
+              <p className="text-xs text-muted">Totaal ({servings} pers.)</p>
+              <p className="text-xl font-extrabold text-ink">
+                {priceIncomplete ? '± ' : ''}
+                {formatEuro(recipe.total_price)}
+              </p>
+            </div>
           </div>
-          <div className="flex-1 rounded-card bg-surface p-4 text-center shadow-card">
-            <p className="text-xs text-muted">Totaal ({servings} pers.)</p>
-            <p className="text-xl font-extrabold text-ink">
-              {formatEuro(recipe.total_price)}
+          {priceIncomplete && (
+            <p className="flex items-start gap-1.5 px-1 text-[11px] leading-snug text-muted">
+              <i className="ph ph-info mt-0.5 shrink-0 text-amber-500" aria-hidden="true" />
+              Richtprijs — van één of meer ingrediënten kon de prijs niet worden
+              opgehaald (zie “n.t.b.” hieronder).
             </p>
-          </div>
+          )}
         </section>
 
         {/* Ingrediënten-tabel */}
@@ -192,8 +205,22 @@ function IngredientRow({ ing }: { ing: PricedIngredient }) {
           ) : null}
         </div>
       </div>
-      <span className={`shrink-0 text-sm font-semibold ${ing.is_pantry ? 'text-green-600' : 'text-ink'}`}>
-        {ing.is_pantry ? '€ 0,—' : ing.price > 0 ? formatEuro(ing.price) : '—'}
+      <span
+        className={`shrink-0 text-sm font-semibold ${
+          ing.is_pantry
+            ? 'text-green-600'
+            : ing.price == null
+              ? 'text-amber-600'
+              : 'text-ink'
+        }`}
+      >
+        {ing.is_pantry
+          ? '€ 0,—'
+          : ing.price == null
+            ? 'n.t.b.'
+            : ing.price > 0
+              ? formatEuro(ing.price)
+              : '—'}
       </span>
     </li>
   );

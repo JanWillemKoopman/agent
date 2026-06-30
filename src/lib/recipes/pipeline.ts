@@ -2,11 +2,12 @@ import {
   chefRecipes,
   criticFilter,
   shopPrices,
+  shopMissingPrices,
   CHEF_PERSONAS,
   MAX_SHOPPER_CALLS,
 } from '../gemini/agents';
 import { getCachedDealsOrForage } from './deals-cache';
-import { calculateRecipes } from './calculator';
+import { calculateRecipes, findMissingPriceIngredients } from './calculator';
 import type { Deal, RecipeConcept, PriceMap, FinalRecipe } from '../types';
 
 export type Emit = (step: number, message: string) => void;
@@ -88,6 +89,26 @@ export async function runKitchenBrigade(
       Object.assign(prices, r.value);
     } else {
       console.error('Shopper faalde:', r.reason);
+    }
+  }
+
+  // --- Stap 4b: Tweede prijzenronde voor ontbrekende prijzen ----------------
+  // Eén gefaalde of onvolledige Shopper-call zou anders een heel recept op €0
+  // zetten. Verzamel de niet-pantry ingrediënten zonder geldige prijs en haal
+  // die in één gerichte call alsnog op. Bestaande (geldige) prijzen blijven
+  // staan; we vullen alleen de gaten.
+  const missing = findMissingPriceIngredients(bestConcepts, prices);
+  if (missing.length > 0) {
+    emit(4, `Ontbrekende prijzen aanvullen voor ${missing.length} ingrediënten…`);
+    try {
+      const extra = await shopMissingPrices(missing, stores);
+      for (const [key, value] of Object.entries(extra)) {
+        const existing = prices[key];
+        const hasValid = existing && typeof existing.price === 'number' && existing.price > 0;
+        if (!hasValid) prices[key] = value;
+      }
+    } catch (err) {
+      console.error('Tweede prijzenronde faalde:', err);
     }
   }
 

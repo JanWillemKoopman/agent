@@ -49,7 +49,13 @@ export type PriceMap = Record<string, IngredientPrice>;
 // Stap 5 — Calculator: een definitief, doorgerekend recept.
 export interface PricedIngredient {
   name: string;
-  price: number;
+  /**
+   * Prijs in euro's. `null` = prijs ONBEKEND (lookup mislukt) — bewust anders
+   * dan `0`, dat staat voor een pantry-ingrediënt dat gratis "in huis" is.
+   * Een onbekende prijs telt niet mee in het totaal en maakt het recept
+   * onvolledig (zie FinalRecipe.price_complete).
+   */
+  price: number | null;
   is_deal: boolean;
   is_pantry?: boolean;
   original_price?: number | null;
@@ -67,8 +73,16 @@ export interface FinalRecipe {
   servings: number;
   supermarkets: string[];
   korting_deal_count: number;
+  /** Som van de BEKENDE prijzen. Bij price_complete=false is dit een richtprijs. */
   total_price: number;
   price_per_person: number;
+  /**
+   * false zodra van minstens één niet-pantry-ingrediënt de prijs ontbreekt.
+   * Het getoonde totaal is dan onvolledig (richtprijs) en mag niet als
+   * definitief worden gepresenteerd. Optioneel voor backward-compat met
+   * eerder bewaarde recepten zonder dit veld.
+   */
+  price_complete?: boolean;
   image_url: string | null;
 }
 
