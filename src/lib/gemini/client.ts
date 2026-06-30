@@ -2,14 +2,20 @@ import { GoogleGenAI } from '@google/genai';
 
 // Centrale model-ids. Hybride opzet:
 // - FLASH_LITE: snel + goedkoop — voor Shoppers (stap 4).
-// - CHEF:       culinaire kwaliteit — voor Foragers (stap 1), Chefs (stap 2) en Critic (stap 3).
+// - CHEF:       culinaire kwaliteit — voor Chefs (stap 2) en Critic (stap 3).
+// - FORAGER:    grounded search (stap 1) — gepind op gemini-3.5-flash.
 //
-// Gepind op de stabiele 2.5-modellen. Eerder stonden hier `gemini-3.1-flash-lite`
-// en `gemini-3.5-flash`; die werden door de API afgewezen (geen toegang/quota voor
-// de gemini-3-tier op deze key) waardoor élke scrape-call faalde en — door het
-// stille opvangen van fouten — als "0 producten" verscheen. 2.5 is bewezen werkend.
+// Let op de geschiedenis: commit c6e7d80 (juni 2025) zette de modellen op
+// `gemini-3.1-flash-lite` / `gemini-3.5-flash` terwijl die tier nog niet GA/
+// toegankelijk was op deze key — élke call faalde en verscheen (door het stille
+// opvangen van fouten) als "0 producten". Inmiddels (juni 2026) is gemini-3.5-flash
+// een stabiel model dat de google_search-tool ondersteunt. Chefs/Critic blijven op
+// het bewezen 2.5-flash zodat een eventueel access-probleem op 3.5 alleen de scraper
+// raakt — en dankzij de fail-loud-afhandeling nu zichtbaar als 'failed', niet als
+// vals "Klaar!".
 export const GEMINI_FLASH_LITE = 'gemini-2.5-flash-lite';
 export const GEMINI_CHEF = 'gemini-2.5-flash';
+export const GEMINI_FORAGER = 'gemini-3.5-flash';
 
 let client: GoogleGenAI | null = null;
 

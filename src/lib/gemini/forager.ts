@@ -13,7 +13,7 @@
  *   Fase 6 — Gap-analyse: Gemini zoekt wat we nog missen
  */
 
-import { generateGroundedJson, GEMINI_CHEF } from './client';
+import { generateGroundedJson, GEMINI_FORAGER } from './client';
 import type { Deal } from '../types';
 
 // ---------------------------------------------------------------------------
@@ -571,7 +571,7 @@ async function runStrategy(
   try {
     const raw = await generateGroundedJson<Deal[]>({
       prompt,
-      model: GEMINI_CHEF,
+      model: GEMINI_FORAGER,
       systemInstruction: SCRAPER_SYSTEM_INSTRUCTION,
     });
     const batch = Array.isArray(raw) ? raw : [];
@@ -712,7 +712,7 @@ ${jsonSchema(store)}`.trim();
   try {
     const raw = await generateGroundedJson<Deal[]>({
       prompt,
-      model: GEMINI_CHEF,
+      model: GEMINI_FORAGER,
       systemInstruction: SCRAPER_SYSTEM_INSTRUCTION,
     });
     const batch = Array.isArray(raw) ? raw : [];
