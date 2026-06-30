@@ -10,6 +10,7 @@ export interface StoreProgress {
   status: StoreRunStatus;
   productsFound?: number;
   confidenceScore?: number;
+  currentCount?: number;
 }
 
 export function useDealRefreshStream() {
@@ -67,6 +68,9 @@ export function useDealRefreshStream() {
               case 'store-start':
                 if (store) updateStore(store, { status: 'running' });
                 break;
+              case 'store-progress':
+                if (store) updateStore(store, { currentCount: data.count as number | undefined });
+                break;
               case 'store-done':
                 if (store)
                   updateStore(store, {
@@ -83,6 +87,11 @@ export function useDealRefreshStream() {
                 break;
               case 'done':
                 setIsDone(true);
+                // Reset stores die nog op 'running' staan (SSE-event gemist) zodat
+                // de UI terugvalt op DB-status in plaats van oneindig te draaien.
+                setStoreProgress((prev) =>
+                  prev.map((s) => (s.status === 'running' ? { ...s, status: 'idle' } : s))
+                );
                 break;
               case 'error':
                 setError((data.message as string | undefined) ?? 'Er ging iets mis.');
@@ -97,6 +106,11 @@ export function useDealRefreshStream() {
         }
       } finally {
         setIsRunning(false);
+        // Veiligheidsnet: als de stream onverwacht sluit, zet overgebleven
+        // 'running' stores op 'idle' zodat de UI de DB-status toont.
+        setStoreProgress((prev) =>
+          prev.map((s) => (s.status === 'running' ? { ...s, status: 'idle' } : s))
+        );
       }
     },
     [updateStore]

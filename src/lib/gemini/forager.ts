@@ -695,7 +695,7 @@ export interface ForagerResult {
 // Interne implementatie
 // ---------------------------------------------------------------------------
 
-async function runForager(store: string): Promise<ForagerResult> {
+async function runForager(store: string, onProgress?: (count: number) => void): Promise<ForagerResult> {
   const startMs = Date.now();
   const urlHint = buildUrlHint(store);
   let aiCallsMade = 0;
@@ -716,6 +716,7 @@ async function runForager(store: string): Promise<ForagerResult> {
   totalRaw += rawDeals.length;
   let allDeals = deduplicateDeals(qualityFilter(rawDeals));
   console.log(`[Forager] Na fase 1: ${allDeals.length} unieke producten (${rawDeals.length} ruw) voor ${store}`);
+  onProgress?.(allDeals.length);
 
   // ── Fase 2: Categoriespecifieke zoekstrategieën (parallel) ────────────────
   // Geen exclusielijst — deduplicatie pakt overlappen af. Exclusies verwarren
@@ -732,6 +733,7 @@ async function runForager(store: string): Promise<ForagerResult> {
   totalRaw += categoryRaw.length;
   allDeals = deduplicateDeals([...allDeals, ...qualityFilter(categoryRaw)]);
   console.log(`[Forager] Na fase 2: ${allDeals.length} unieke producten (${categoryRaw.length} ruw) voor ${store}`);
+  onProgress?.(allDeals.length);
 
   // ── Fase 3: Coverage analyse ──────────────────────────────────────────────
   let coverage = analyzeCoverage(allDeals);
@@ -773,6 +775,7 @@ async function runForager(store: string): Promise<ForagerResult> {
     console.log(
       `[Forager] Na recovery ronde ${round}: ${allDeals.length} producten, coverage ${coverage.confidenceScore}%`
     );
+    onProgress?.(allDeals.length);
   }
 
   // ── Fase 5: Gap-analyse — alleen als coverage onder 85% ligt ────────────────
@@ -790,6 +793,7 @@ async function runForager(store: string): Promise<ForagerResult> {
       console.log(
         `[Forager] Na gap-analyse: ${allDeals.length} producten (+${allDeals.length - beforeGap} nieuw), coverage ${coverage.confidenceScore}%`
       );
+      onProgress?.(allDeals.length);
     } else {
       console.log(`[Forager] Gap-analyse: geen extra producten gevonden.`);
     }
@@ -814,8 +818,8 @@ async function runForager(store: string): Promise<ForagerResult> {
 // ---------------------------------------------------------------------------
 
 /** Volledige forager-run met metrics. Gebruik dit in scrapeStore voor opslag. */
-export async function forageDealsWithMetrics(store: string): Promise<ForagerResult> {
-  return runForager(store);
+export async function forageDealsWithMetrics(store: string, onProgress?: (count: number) => void): Promise<ForagerResult> {
+  return runForager(store, onProgress);
 }
 
 /** Backward-compatibele wrapper die alleen de deals teruggeeft. */

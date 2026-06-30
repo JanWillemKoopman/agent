@@ -59,7 +59,11 @@ function StoreCard({ store, progress, dbStatus }: {
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-navy truncate">{store}</p>
         <p className="text-xs text-muted mt-0.5">
-          {isRunning && 'Aanbiedingen ophalen…'}
+          {isRunning && (
+            progress?.currentCount != null && progress.currentCount > 0
+              ? `${progress.currentCount} gevonden · ophalen…`
+              : 'Aanbiedingen ophalen…'
+          )}
           {isDone && productsFound != null && `${productsFound} producten gevonden`}
           {isDone && productsFound == null && 'Klaar'}
           {isFailed && 'Mislukt — probeer opnieuw'}

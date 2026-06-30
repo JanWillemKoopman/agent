@@ -68,7 +68,7 @@ async function scrapeStore(
 
   try {
     const { deals, coverage, aiCallsMade, durationMs, duplicatesRemoved } =
-      await forageDealsWithMetrics(store);
+      await forageDealsWithMetrics(store, (count) => emit('store-progress', { store, count }));
 
     await service.from('daily_deals').delete().eq('store', store).eq('deal_date', day);
 
