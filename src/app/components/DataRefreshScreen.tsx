@@ -43,10 +43,8 @@ function StoreCard({ store, progress, dbStatus }: {
   const dbDone = dbStatus?.status === 'done';
   const showDbData = isIdle && dbDone;
 
-  const productsFound =
-    isDone ? (progress?.productsFound ?? dbStatus?.productsFound)
-    : showDbData ? dbStatus?.productsFound
-    : undefined;
+  // Aantal producten uit DB voor vandaag — altijd tonen als > 0.
+  const dbCount = dbStatus?.productsFound ?? 0;
 
   const lastUpdate = showDbData ? dbStatus?.finishedAt : isDone ? new Date().toISOString() : null;
 
@@ -64,16 +62,21 @@ function StoreCard({ store, progress, dbStatus }: {
               ? `${progress.currentCount} gevonden · ophalen…`
               : 'Aanbiedingen ophalen…'
           )}
-          {isDone && productsFound != null && `${productsFound} producten gevonden`}
-          {isDone && productsFound == null && 'Klaar'}
+          {isDone && 'Opgehaald'}
           {isFailed && 'Mislukt — probeer opnieuw'}
-          {showDbData && productsFound != null && `${productsFound} producten · bijgewerkt ${formatDateTime(lastUpdate ?? null)}`}
-          {showDbData && productsFound == null && `Bijgewerkt ${formatDateTime(lastUpdate ?? null)}`}
+          {showDbData && `Bijgewerkt ${formatDateTime(lastUpdate ?? null)}`}
           {isIdle && !showDbData && 'Wacht op start…'}
         </p>
       </div>
 
-      <div className="shrink-0">
+      <div className="shrink-0 flex items-center gap-2">
+        {/* Persistente DB-teller: hoeveel producten beschikbaar zijn voor recepten */}
+        {dbCount > 0 && (
+          <span className="flex items-center gap-1 rounded-full bg-ahBlueSoft px-2.5 py-1 text-xs font-bold text-ahBlue">
+            <i className="ph-fill ph-tag text-[10px]" aria-hidden="true" />
+            {dbCount}
+          </span>
+        )}
         {isRunning && (
           <i className="ph ph-circle-notch animate-spin text-xl text-ahBlue" aria-hidden="true" />
         )}
@@ -83,7 +86,7 @@ function StoreCard({ store, progress, dbStatus }: {
         {isFailed && (
           <i className="ph-fill ph-warning-circle text-xl text-danger" aria-hidden="true" />
         )}
-        {(isIdle && !showDbData) && (
+        {isIdle && !showDbData && (
           <i className="ph ph-clock text-xl text-muted" aria-hidden="true" />
         )}
         {showDbData && (
